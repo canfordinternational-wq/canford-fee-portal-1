@@ -1,0 +1,1742 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Canford Books - Institutional Accounting & Student Billing Software</title>
+
+  <!-- PWA Support -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#0a1628">
+  <meta name="mobile-web-app-capable" content="yes">
+  <!-- iPhone / iPad PWA -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Canford">
+  <link rel="apple-touch-icon" href="assets/logo.png">
+
+  <!-- Service Worker Registration -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js').catch(() => {});
+      });
+    }
+  </script>
+
+  <!-- Google Fonts: Inter & Outfit -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            canford: {
+              blue: '#005696',
+              gold: '#C5A059',
+              dark: '#072a4a',
+              light: '#f0f7fc'
+            }
+          },
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            display: ['Outfit', 'sans-serif']
+          }
+        }
+      }
+    }
+  </script>
+  
+  <!-- Canvas Confetti -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+  <!-- Custom Stylesheet -->
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body class="bg-slate-100 text-slate-800 antialiased h-screen flex overflow-hidden">
+
+  <!-- ========================================================================= -->
+  <!-- ZOHO BOOKS STYLE COLLAPSIBLE SIDEBAR (240px) -->
+  <!-- ========================================================================= -->
+  <aside class="no-print w-60 canford-sidebar text-slate-300 flex flex-col shrink-0 border-r border-[#001f3b] select-none z-30 shadow-xl">
+    
+    <!-- Organization Header (Zoho Style) -->
+    <div class="p-4 border-b border-white/10 flex items-center justify-between">
+      <div class="flex items-center gap-2.5">
+        <img src="assets/logo-white-mix.png" alt="Canford" class="h-9 object-contain">
+        <div>
+          <h1 class="text-sm font-black text-white leading-tight font-display tracking-wide">Canford Books</h1>
+          <p class="text-[10px] text-[#C5A059] font-bold tracking-wider uppercase">Institutional ERP</p>
+        </div>
+      </div>
+      <button onclick="switchModule('settings')" class="text-slate-400 hover:text-white p-1 rounded hover:bg-white/10 transition" title="Settings & Setup">
+        <i class="fas fa-cog text-xs"></i>
+      </button>
+    </div>
+
+    <!-- Quick Action "+ New" Button -->
+    <div class="p-3 relative">
+      <button onclick="toggleQuickCreateDropdown()" class="w-full py-2 px-3 bg-[#005696] hover:bg-[#004375] text-white rounded-xl text-xs font-bold transition flex items-center justify-between shadow-md">
+        <span class="flex items-center gap-2">
+          <i class="fas fa-plus text-[10px]"></i>
+          <span>New Transaction</span>
+        </span>
+        <i class="fas fa-chevron-down text-[10px]"></i>
+      </button>
+
+      <!-- Quick Create Dropdown Menu -->
+      <div id="quick-create-dropdown" class="hidden absolute left-3 right-3 top-14 bg-white text-slate-800 rounded-xl shadow-2xl border border-slate-200 py-1.5 z-50 text-xs animate-in fade-in zoom-in-95 duration-150">
+        <a href="javascript:void(0)" onclick="openAddStudentModal(); closeQuickCreateDropdown();" class="flex items-center gap-2.5 px-3 py-2 hover:bg-slate-50 text-slate-700 font-semibold">
+          <i class="fas fa-user-plus text-[#005696] w-4"></i> New Student Contact
+        </a>
+        <a href="javascript:void(0)" onclick="openNewInvoiceModal();" class="flex items-center gap-2.5 px-3 py-2 hover:bg-slate-50 text-slate-700 font-semibold">
+          <i class="fas fa-file-invoice text-emerald-600 w-4"></i> New Fee Invoice
+        </a>
+        <a href="javascript:void(0)" onclick="openCollectModal('CAN-2025-001'); closeQuickCreateDropdown();" class="flex items-center gap-2.5 px-3 py-2 hover:bg-slate-50 text-slate-700 font-semibold">
+          <i class="fas fa-hand-holding-usd text-amber-600 w-4"></i> Record Payment
+        </a>
+        <a href="javascript:void(0)" onclick="openAddExpenseModal(); closeQuickCreateDropdown();" class="flex items-center gap-2.5 px-3 py-2 hover:bg-slate-50 text-slate-700 font-semibold">
+          <i class="fas fa-receipt text-rose-600 w-4"></i> Record Expense
+        </a>
+      </div>
+    </div>
+
+    <!-- Navigation Modules -->
+    <nav class="flex-grow px-2.5 py-2 space-y-1 text-xs font-medium overflow-y-auto">
+      <div class="px-2 pt-1 pb-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">Core Financials</div>
+
+      <button id="side-nav-dashboard" onclick="switchModule('dashboard')" class="w-full flex items-center gap-3 px-3 py-2 rounded-xl transition hover:bg-white/10 hover:text-white sidebar-item-active">
+        <i class="fas fa-chart-pie w-4 text-center"></i>
+        <span>Dashboard</span>
+      </button>
+
+      <button id="side-nav-students" onclick="switchModule('students')" class="w-full flex items-center gap-3 px-3 py-2 rounded-xl transition hover:bg-white/10 hover:text-white">
+        <i class="fas fa-user-graduate w-4 text-center"></i>
+        <span>Students / Contacts</span>
+      </button>
+
+      <button id="side-nav-invoices" onclick="switchModule('invoices')" class="w-full flex items-center gap-3 px-3 py-2 rounded-xl transition hover:bg-white/10 hover:text-white">
+        <i class="fas fa-file-invoice-dollar w-4 text-center"></i>
+        <span>Fee Invoices</span>
+      </button>
+
+      <button id="side-nav-payments" onclick="switchModule('payments')" class="w-full flex items-center gap-3 px-3 py-2 rounded-xl transition hover:bg-white/10 hover:text-white">
+        <i class="fas fa-money-check-alt w-4 text-center"></i>
+        <span>Payments Received</span>
+      </button>
+
+      <button id="side-nav-expenses" onclick="switchModule('expenses')" class="w-full flex items-center gap-3 px-3 py-2 rounded-xl transition hover:bg-white/10 hover:text-white">
+        <i class="fas fa-receipt w-4 text-center"></i>
+        <span>Operating Expenses</span>
+      </button>
+
+      <button id="side-nav-reports" onclick="switchModule('reports')" class="w-full flex items-center gap-3 px-3 py-2 rounded-xl transition hover:bg-white/10 hover:text-white">
+        <i class="fas fa-file-signature w-4 text-center"></i>
+        <span>Financial Reports</span>
+      </button>
+
+      <div class="px-2 pt-4 pb-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">Administration</div>
+
+      <button id="side-nav-master" onclick="switchModule('master')" class="w-full flex items-center gap-3 px-3 py-2 rounded-xl transition hover:bg-white/10 hover:text-white">
+        <i class="fas fa-layer-group w-4 text-center text-[#C5A059]"></i>
+        <span>Master Setup</span>
+      </button>
+
+      <button id="side-nav-settings" onclick="switchModule('settings')" class="w-full flex items-center gap-3 px-3 py-2 rounded-xl transition hover:bg-white/10 hover:text-white">
+        <i class="fas fa-cog w-4 text-center text-blue-300"></i>
+        <span>Settings & Config</span>
+      </button>
+
+      <div class="px-2 pt-4 pb-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">Client Portal</div>
+
+      <button id="side-nav-publicpay" onclick="switchModule('publicpay')" class="w-full flex items-center gap-3 px-3 py-2 rounded-xl transition hover:bg-white/10 text-amber-300">
+        <i class="fas fa-globe w-4 text-center"></i>
+        <span>Public Student View</span>
+      </button>
+    </nav>
+
+    <!-- Sidebar Footer -->
+    <div class="p-3 border-t border-white/10 text-[11px] text-slate-400">
+      <div class="flex items-center gap-2">
+        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+        <span class="font-semibold text-slate-300">Offline & Cloud Sync</span>
+      </div>
+      <p class="text-[10px] text-slate-400 mt-1">HiLITE Business Park, Calicut</p>
+    </div>
+
+  </aside>
+
+  <!-- ========================================================================= -->
+  <!-- MAIN WORKSPACE & CONTENT -->
+  <!-- ========================================================================= -->
+  <div class="flex-grow flex flex-col overflow-hidden">
+    
+    <!-- Top Software Action Bar -->
+    <header id="app-top-header" class="no-print h-14 bg-white border-b border-slate-200 px-6 flex items-center justify-between shrink-0 z-20">
+      <div class="flex items-center gap-4 text-xs">
+        <span class="font-bold text-slate-900 flex items-center gap-2">
+          <i class="fas fa-building text-[#005696]"></i>
+          <span id="top-org-name">Canford International Institute LLP</span>
+        </span>
+        <span class="text-slate-300">|</span>
+        <span class="text-slate-500 font-mono text-[11px]" id="top-org-gstin">GSTIN: 32AAAAA0000A1Z5</span>
+      </div>
+
+      <div class="flex items-center gap-3 text-xs">
+        <button onclick="switchModule('settings')" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-semibold transition flex items-center gap-1.5" title="Organization & Settings">
+          <i class="fas fa-sliders-h text-[#005696]"></i>
+          <span>Settings</span>
+        </button>
+        <button onclick="exportStudentsCSV()" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-semibold transition flex items-center gap-1.5">
+          <i class="fas fa-download text-[#005696]"></i>
+          <span>Export Excel</span>
+        </button>
+        <button onclick="handleResetDemoData()" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg transition" title="Restore seed demo records">
+          <i class="fas fa-undo"></i>
+        </button>
+        <div onclick="switchModule('settings')" class="w-8 h-8 rounded-full bg-[#005696] text-white flex items-center justify-center font-bold text-xs cursor-pointer hover:ring-2 hover:ring-[#C5A059] transition" title="Manage Organization & Users">
+          CI
+        </div>
+      </div>
+    </header>
+
+    <!-- Content Workspace -->
+    <main class="flex-grow overflow-y-auto">
+
+      <!-- ===================================================================== -->
+      <!-- MODULE 1: ZOHO DASHBOARD -->
+      <!-- ===================================================================== -->
+      <section id="books-view-dashboard" class="p-6 space-y-6">
+        
+        <!-- Welcome Banner -->
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-gradient-to-r from-[#005696] to-[#072a4a] text-white p-6 rounded-2xl shadow-sm">
+          <div>
+            <span class="px-2.5 py-0.5 bg-amber-400/20 text-amber-300 rounded text-[11px] font-bold uppercase tracking-wider">Accounting Center</span>
+            <h2 class="text-2xl font-black font-display mt-1">Financial Command Center</h2>
+            <p class="text-xs text-slate-200 mt-0.5">Real-time overview of student fee receivables, cash inflows, and institutional operating costs.</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <button onclick="openNewInvoiceModal()" class="px-4 py-2 bg-[#C5A059] hover:bg-amber-600 text-white font-bold text-xs rounded-xl shadow transition flex items-center gap-2">
+              <i class="fas fa-plus"></i> Create Invoice
+            </button>
+          </div>
+        </div>
+
+        <!-- 3 Primary Zoho Metric Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+          
+          <!-- Card 1: Total Receivables -->
+          <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+            <div class="flex justify-between items-start mb-3">
+              <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Total Receivables</span>
+              <span class="text-xs font-semibold text-[#005696] cursor-pointer hover:underline" onclick="switchModule('invoices')">View Invoices →</span>
+            </div>
+            <h3 id="dash-total-receivables" class="text-3xl font-black text-slate-900 font-mono">₹0</h3>
+            <div class="mt-4 pt-3 border-t border-slate-100 grid grid-cols-2 text-xs">
+              <div>
+                <span class="text-slate-400">Current (Not Due):</span>
+                <p id="dash-current-receivables" class="font-bold text-emerald-700 font-mono mt-0.5">₹0</p>
+              </div>
+              <div class="text-right">
+                <span class="text-slate-400">Overdue:</span>
+                <p id="dash-overdue-receivables" class="font-bold text-rose-700 font-mono mt-0.5">₹0</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Card 2: Cash Flow (Inflow vs Outflow) -->
+          <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+            <div class="flex justify-between items-start mb-3">
+              <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Cash Flow Summary</span>
+              <span class="text-xs font-semibold text-emerald-700 cursor-pointer hover:underline" onclick="switchModule('reports')">View P&L →</span>
+            </div>
+            <div class="space-y-2">
+              <div class="flex justify-between text-xs">
+                <span class="text-slate-600">Total Fee Inflow (Collections):</span>
+                <span id="dash-total-income" class="font-black text-emerald-700 font-mono text-sm">₹0</span>
+              </div>
+              <div class="flex justify-between text-xs">
+                <span class="text-slate-600">Operating Outflow (Expenses):</span>
+                <span id="dash-total-expenses" class="font-black text-rose-700 font-mono text-sm">₹0</span>
+              </div>
+              <div class="pt-2 border-t border-slate-100 flex justify-between items-center text-xs">
+                <span class="font-bold text-slate-800">Net Operating Surplus:</span>
+                <span id="dash-net-profit" class="text-xl font-black font-mono text-emerald-700">₹0</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Card 3: Academic Stats -->
+          <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
+            <div>
+              <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Academic Roster</span>
+              <h3 id="dash-active-students" class="text-3xl font-black text-slate-900 font-mono mt-2">0</h3>
+              <p class="text-xs text-slate-400 mt-1">Active candidates in CMA USA & IFRS</p>
+            </div>
+            <div class="pt-4 flex gap-2">
+              <button onclick="openAddStudentModal()" class="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold text-xs transition">
+                + Add Student
+              </button>
+              <button onclick="switchModule('students')" class="w-full py-2 bg-[#005696] text-white rounded-xl font-bold text-xs transition">
+                Directory
+              </button>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Recent Activity Feed & Fast Access -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <div class="lg:col-span-8 bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+            <div class="flex justify-between items-center mb-4 pb-2 border-b border-slate-100">
+              <h4 class="font-bold text-slate-900 text-sm">Recent Financial Transactions</h4>
+              <span class="text-xs text-slate-400 font-mono">Live Ledger</span>
+            </div>
+            <div id="dash-recent-activity" class="space-y-2">
+              <!-- Rendered dynamically -->
+            </div>
+          </div>
+
+          <!-- Institution Shortcuts -->
+          <div class="lg:col-span-4 bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+            <h4 class="font-bold text-slate-900 text-sm border-b border-slate-100 pb-2">Quick Shortcuts</h4>
+            <div class="space-y-2 text-xs">
+              <button onclick="switchModule('invoices'); setInvoiceFilter('overdue');" class="w-full p-3 rounded-xl border border-rose-200 bg-rose-50/50 hover:bg-rose-50 text-left flex items-center justify-between transition">
+                <span class="font-bold text-rose-800"><i class="fas fa-exclamation-circle mr-2"></i> Review Overdue Accounts</span>
+                <i class="fas fa-chevron-right text-rose-400"></i>
+              </button>
+              <button onclick="switchModule('expenses')" class="w-full p-3 rounded-xl border border-slate-200 hover:bg-slate-50 text-left flex items-center justify-between transition">
+                <span class="font-semibold text-slate-700"><i class="fas fa-receipt mr-2 text-slate-500"></i> Review Operating Expenses</span>
+                <i class="fas fa-chevron-right text-slate-400"></i>
+              </button>
+              <button onclick="switchModule('reports')" class="w-full p-3 rounded-xl border border-slate-200 hover:bg-slate-50 text-left flex items-center justify-between transition">
+                <span class="font-semibold text-slate-700"><i class="fas fa-chart-line mr-2 text-slate-500"></i> Generate P&L Report</span>
+                <i class="fas fa-chevron-right text-slate-400"></i>
+              </button>
+              <button onclick="switchModule('publicpay')" class="w-full p-3 rounded-xl border border-blue-200 bg-blue-50/40 hover:bg-blue-50 text-left flex items-center justify-between transition">
+                <span class="font-semibold text-[#005696]"><i class="fas fa-link mr-2"></i> Open Student Payment Link</span>
+                <i class="fas fa-external-link-alt text-[#005696]"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- ===================================================================== -->
+      <!-- MODULE 2: STUDENTS / CONTACTS DIRECTORY -->
+      <!-- ===================================================================== -->
+      <section id="books-view-students" class="p-6 hidden space-y-5">
+        <div class="flex justify-between items-center">
+          <div>
+            <h2 class="text-xl font-black font-display text-slate-900">Students & Candidate Contacts</h2>
+            <p class="text-xs text-slate-500">Manage enrolled candidate records, fee balances, and contact details</p>
+          </div>
+          <button onclick="openAddStudentModal()" class="px-4 py-2 bg-[#005696] hover:bg-[#004375] text-white font-bold text-xs rounded-xl shadow transition flex items-center gap-2">
+            <i class="fas fa-user-plus"></i> + Add New Student
+          </button>
+        </div>
+
+        <!-- Master Student Table Container -->
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          <div class="p-4 border-b border-slate-100 flex flex-col md:flex-row justify-between items-center gap-3">
+            <div class="relative w-full md:w-80">
+              <i class="fas fa-search absolute left-3.5 top-3 text-slate-400 text-xs"></i>
+              <input type="text" id="admin-search-input" placeholder="Search candidate, phone, ID..." class="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#005696]">
+            </div>
+
+            <div class="flex flex-wrap items-center gap-2 w-full md:w-auto">
+              <select id="admin-filter-course" class="py-2 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 focus:outline-none">
+                <option value="all">All Programs</option>
+                <option value="cma-usa-comp">CMA USA Comprehensive</option>
+                <option value="cma-usa-p2">CMA USA Part 2</option>
+                <option value="cma-usa-p1">CMA USA Part 1</option>
+                <option value="ifrs-dip">Diploma in IFRS</option>
+                <option value="biz-analytics">Business Analytics & AI</option>
+              </select>
+
+              <select id="admin-filter-status" class="py-2 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 focus:outline-none">
+                <option value="all">All Payment Status</option>
+                <option value="paid">Paid Full</option>
+                <option value="partial">Partial Paid</option>
+                <option value="overdue">Overdue</option>
+                <option value="pending">Pending</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+              <thead>
+                <tr class="bg-slate-50 text-slate-500 uppercase text-[10px] font-bold tracking-wider border-b border-slate-200">
+                  <th class="py-3 px-4">Student ID</th>
+                  <th class="py-3 px-4">Candidate & Phone</th>
+                  <th class="py-3 px-4">Course Enrolled</th>
+                  <th class="py-3 px-4">Fee Paid / Total</th>
+                  <th class="py-3 px-4">Receivable Due</th>
+                  <th class="py-3 px-4">Status</th>
+                  <th class="py-3 px-4 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="admin-students-tbody" class="divide-y divide-slate-100">
+                <!-- Injected via admin.js -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===================================================================== -->
+      <!-- MODULE 3: FEE INVOICES (ZOHO SPLIT-PANE VIEW) -->
+      <!-- ===================================================================== -->
+      <section id="books-view-invoices" class="h-full hidden flex flex-col">
+        
+        <!-- Invoices Top Filter Bar -->
+        <div class="no-print bg-white px-6 py-3 border-b border-slate-200 flex flex-wrap justify-between items-center gap-3 shrink-0">
+          <div class="flex items-center gap-1">
+            <button id="inv-tab-all" onclick="setInvoiceFilter('all')" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-[#005696] text-white shadow-sm">All Invoices</button>
+            <button id="inv-tab-unpaid" onclick="setInvoiceFilter('unpaid')" class="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600 hover:bg-slate-100">Unpaid</button>
+            <button id="inv-tab-partially-paid" onclick="setInvoiceFilter('partially paid')" class="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600 hover:bg-slate-100">Partially Paid</button>
+            <button id="inv-tab-paid" onclick="setInvoiceFilter('paid')" class="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600 hover:bg-slate-100">Paid</button>
+            <button id="inv-tab-overdue" onclick="setInvoiceFilter('overdue')" class="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600 hover:bg-slate-100">Overdue</button>
+          </div>
+
+          <button onclick="openNewInvoiceModal()" class="px-3.5 py-1.5 bg-[#005696] hover:bg-[#004375] text-white rounded-xl text-xs font-bold shadow transition flex items-center gap-1.5">
+            <i class="fas fa-plus"></i> + New Invoice
+          </button>
+        </div>
+
+        <!-- Split-Pane Layout -->
+        <div class="flex-grow flex overflow-hidden">
+          <!-- Left Master List (340px) -->
+          <div class="w-80 border-r border-slate-200 bg-white flex flex-col shrink-0">
+            <div id="books-invoices-list" class="flex-grow overflow-y-auto divide-y divide-slate-100">
+              <!-- Populated via books-invoices.js -->
+            </div>
+          </div>
+
+          <!-- Right Detail Pane (Flex-1) -->
+          <div id="books-invoice-detail-pane" class="flex-grow overflow-y-auto bg-slate-100">
+            <!-- Populated via books-invoices.js renderInvoiceDetail() -->
+          </div>
+        </div>
+
+      </section>
+
+      <!-- ===================================================================== -->
+      <!-- MODULE 4: PAYMENTS RECEIVED -->
+      <!-- ===================================================================== -->
+      <section id="books-view-payments" class="p-6 hidden space-y-5">
+        <div class="flex justify-between items-center">
+          <div>
+            <h2 class="text-xl font-black font-display text-slate-900">Payments Received</h2>
+            <p class="text-xs text-slate-500">Official fee payment vouchers and bank clearance records</p>
+          </div>
+          <button onclick="openCollectModal('CAN-2025-001')" class="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-xl shadow transition flex items-center gap-2">
+            <i class="fas fa-money-bill-wave"></i> + Record Payment
+          </button>
+        </div>
+
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+              <thead>
+                <tr class="bg-slate-50 text-slate-500 uppercase text-[10px] font-bold tracking-wider border-b border-slate-200">
+                  <th class="py-3 px-4">Payment #</th>
+                  <th class="py-3 px-4">Date</th>
+                  <th class="py-3 px-4">Candidate Name</th>
+                  <th class="py-3 px-4">Invoice #</th>
+                  <th class="py-3 px-4">Payment Mode & Ref</th>
+                  <th class="py-3 px-4 text-right">Amount Received</th>
+                  <th class="py-3 px-4 text-right">Voucher</th>
+                </tr>
+              </thead>
+              <tbody id="books-payments-tbody" class="divide-y divide-slate-100">
+                <!-- Injected dynamically -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===================================================================== -->
+      <!-- MODULE 5: OPERATING EXPENSES -->
+      <!-- ===================================================================== -->
+      <section id="books-view-expenses" class="p-6 hidden space-y-6">
+        <div class="flex justify-between items-center">
+          <div>
+            <h2 class="text-xl font-black font-display text-slate-900">Institutional Operating Expenses</h2>
+            <p class="text-xs text-slate-500">Operational costs transcribed from Canford Accounts Excel (Trademark, Marketing, LMS, Telecom)</p>
+          </div>
+          <button onclick="openAddExpenseModal()" class="px-4 py-2 bg-rose-700 hover:bg-rose-800 text-white font-bold text-xs rounded-xl shadow transition flex items-center gap-2">
+            <i class="fas fa-plus"></i> + Record Expense
+          </button>
+        </div>
+
+        <!-- 4 Expense Category Metric Cards -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+            <span class="text-[11px] font-bold text-slate-400 uppercase">Total Expenses</span>
+            <h4 id="exp-metric-total" class="text-xl font-black text-rose-700 font-mono mt-1">₹0</h4>
+          </div>
+          <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+            <span class="text-[11px] font-bold text-slate-400 uppercase">Advertising & Leads</span>
+            <h4 id="exp-metric-marketing" class="text-xl font-black text-slate-800 font-mono mt-1">₹0</h4>
+          </div>
+          <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+            <span class="text-[11px] font-bold text-slate-400 uppercase">IT, Web & LMS</span>
+            <h4 id="exp-metric-it" class="text-xl font-black text-slate-800 font-mono mt-1">₹0</h4>
+          </div>
+          <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+            <span class="text-[11px] font-bold text-slate-400 uppercase">Legal & Trademark</span>
+            <h4 id="exp-metric-legal" class="text-xl font-black text-slate-800 font-mono mt-1">₹0</h4>
+          </div>
+        </div>
+
+        <!-- Expense Table -->
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+              <thead>
+                <tr class="bg-slate-50 text-slate-500 uppercase text-[10px] font-bold tracking-wider border-b border-slate-200">
+                  <th class="py-3 px-4">Date</th>
+                  <th class="py-3 px-4">Particulars / Description</th>
+                  <th class="py-3 px-4">Expense Category</th>
+                  <th class="py-3 px-4">Payee / Vendor</th>
+                  <th class="py-3 px-4">Paid Through</th>
+                  <th class="py-3 px-4 text-right">Amount (₹)</th>
+                  <th class="py-3 px-4 text-right">Action</th>
+                </tr>
+              </thead>
+              <tbody id="books-expenses-tbody" class="divide-y divide-slate-100">
+                <!-- Injected via books-expenses.js -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===================================================================== -->
+      <!-- MODULE 6: FINANCIAL REPORTS -->
+      <!-- ===================================================================== -->
+      <section id="books-view-reports" class="p-6 hidden space-y-6">
+        <div class="flex justify-between items-center border-b border-slate-200 pb-3">
+          <div>
+            <h2 class="text-xl font-black font-display text-slate-900">Financial Reports & Statements</h2>
+            <p class="text-xs text-slate-500">Standard accounting statements for Canford International</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <button id="rep-tab-pnl" onclick="switchReportTab('pnl')" class="px-4 py-2 border-b-2 border-[#005696] font-bold text-xs text-[#005696]">
+              Profit & Loss
+            </button>
+            <button id="rep-tab-aging" onclick="switchReportTab('aging')" class="px-4 py-2 text-slate-500 hover:text-slate-800 font-semibold text-xs">
+              Receivables Aging
+            </button>
+            <button id="rep-tab-defaulters" onclick="switchReportTab('defaulters')" class="px-4 py-2 text-slate-500 hover:text-slate-800 font-semibold text-xs">
+              Defaulters Alert
+            </button>
+          </div>
+        </div>
+
+        <div id="rep-view-pnl"></div>
+        <div id="rep-view-aging" class="hidden"></div>
+        <div id="rep-view-defaulters" class="hidden"></div>
+      </section>
+
+      <!-- ===================================================================== -->
+      <!-- MODULE 7: PUBLIC STUDENT PAYMENT PORTAL VIEW -->
+      <!-- ===================================================================== -->
+      <section id="books-view-publicpay" class="hidden pb-16">
+        
+        <!-- Public Portal Header -->
+        <div class="bg-gradient-to-r from-[#005696] to-[#072a4a] text-white py-8 px-6 text-center">
+          <span class="inline-block px-3 py-1 bg-amber-400/20 text-amber-300 rounded-full text-xs font-bold uppercase tracking-wider mb-2">
+            Canford Self-Service Fee Checkout
+          </span>
+          <h2 class="text-2xl font-black font-display">Student Fee Payment & Ledger</h2>
+          <p class="text-xs text-slate-200 mt-1 max-w-lg mx-auto">
+            Search with your Student ID (e.g. <code class="bg-white/10 px-1 py-0.5 rounded text-amber-300">CAN-2025-001</code>) or Mobile number to pay installments online and download official fee receipts.
+          </p>
+
+          <form onsubmit="handleStudentSearch(event)" class="mt-4 max-w-md mx-auto flex gap-2">
+            <input type="text" id="student-search-query" placeholder="Enter Student ID or Mobile..." class="w-full px-4 py-2.5 bg-white text-slate-900 rounded-xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-amber-400 shadow">
+            <button type="submit" class="py-2.5 px-5 bg-[#C5A059] hover:bg-amber-600 text-white font-bold text-xs rounded-xl shadow">Find</button>
+          </form>
+
+          <div class="mt-3 flex justify-center gap-2 text-[11px] text-slate-300">
+            <span>Demo:</span>
+            <button onclick="loadStudentInPortal('CAN-2025-001')" class="underline hover:text-white">Brisa C Briji</button>
+            <span>•</span>
+            <button onclick="loadStudentInPortal('CAN-2025-002')" class="underline hover:text-white">Musawir K</button>
+            <span>•</span>
+            <button onclick="loadStudentInPortal('CAN-2025-003')" class="underline hover:text-white">Ameena</button>
+          </div>
+        </div>
+
+        <!-- Student Profile & Ledger Cards -->
+        <div class="max-w-6xl mx-auto px-6 -mt-4">
+          <div class="bg-white rounded-2xl shadow border border-slate-200 overflow-hidden">
+            <div class="p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-100">
+              <div>
+                <div class="flex items-center gap-2">
+                  <h3 id="sp-name" class="text-xl font-black text-slate-900">Brisa C Briji</h3>
+                  <span id="sp-id" class="px-2 py-0.5 bg-[#005696]/10 text-[#005696] font-mono text-xs font-bold rounded">CAN-2025-001</span>
+                  <div id="sp-badge"></div>
+                </div>
+                <p id="sp-course" class="text-xs font-semibold text-slate-600 mt-0.5">CMA USA Part 2</p>
+                <p class="text-xs text-slate-400 mt-1">
+                  Phone: <span id="sp-phone">+91 8921488686</span> • <span id="sp-place">Thrissur</span>
+                </p>
+              </div>
+
+              <div class="flex items-center gap-3">
+                <div id="sp-next-due-box" class="text-right text-xs">
+                  <span class="text-slate-400">Next Due:</span>
+                  <p id="sp-next-due-date" class="font-bold text-amber-800">2026-10-15</p>
+                </div>
+                <button id="sp-main-pay-btn" class="py-2.5 px-5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow transition">
+                  <i class="fas fa-lock mr-1"></i> Pay Online
+                </button>
+              </div>
+            </div>
+
+            <!-- Financial Strip -->
+            <div class="grid grid-cols-3 divide-x divide-slate-100 bg-slate-50 p-4 text-center text-xs">
+              <div>
+                <span class="text-slate-400">Total Course Fee</span>
+                <p id="sp-total-fee" class="text-lg font-black text-slate-900 font-mono mt-0.5">₹45,000</p>
+              </div>
+              <div>
+                <span class="text-emerald-700 font-bold">Total Paid</span>
+                <p id="sp-paid-fee" class="text-lg font-black text-emerald-700 font-mono mt-0.5">₹25,000</p>
+              </div>
+              <div>
+                <span class="text-amber-800 font-bold">Remaining Due</span>
+                <p id="sp-balance-fee" class="text-lg font-black text-amber-800 font-mono mt-0.5">₹20,000</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Installment Milestones & Receipts -->
+          <div class="grid grid-cols-1 md:grid-cols-12 gap-6 mt-6">
+            <div class="md:col-span-7 bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+              <h4 class="font-bold text-slate-900 text-sm mb-3">Installment Roadmap</h4>
+              <div id="sp-installments-list" class="space-y-3"></div>
+            </div>
+            <div class="md:col-span-5 bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+              <h4 class="font-bold text-slate-900 text-sm mb-3">Verified Fee Receipts</h4>
+              <div id="sp-receipts-list" class="space-y-2"></div>
+            </div>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- ===================================================================== -->
+      <!-- MODULE 8: MASTER SETUP (Req 4 & 13) -->
+      <!-- ===================================================================== -->
+      <section id="books-view-master" class="p-6 hidden space-y-6">
+        
+        <!-- Header -->
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="px-2.5 py-0.5 bg-amber-50 text-[#C5A059] border border-amber-200 rounded text-[11px] font-bold uppercase tracking-wider">ERP Masters</span>
+              <span class="text-xs text-slate-400">• Configuration Catalog</span>
+            </div>
+            <h2 class="text-xl font-black text-slate-900 font-display mt-1">Master Setup Center</h2>
+            <p class="text-xs text-slate-500">Manage institutional programs/courses, operating expense categories, and accepted payment modes.</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <button onclick="openAddCourseModal()" class="px-4 py-2 bg-[#005696] hover:bg-[#004375] text-white text-xs font-bold rounded-xl shadow transition flex items-center gap-2">
+              <i class="fas fa-plus"></i> Add New Course
+            </button>
+          </div>
+        </div>
+
+        <!-- Master Tabs Nav -->
+        <div class="flex items-center border-b border-slate-200 bg-white px-4 rounded-xl shadow-sm gap-2">
+          <button id="master-tab-courses" onclick="switchMasterTab('courses')" class="px-4 py-3 border-b-2 border-[#005696] font-bold text-xs text-[#005696] flex items-center gap-2">
+            <i class="fas fa-graduation-cap"></i> Courses & Fees
+          </button>
+          <button id="master-tab-categories" onclick="switchMasterTab('categories')" class="px-4 py-3 text-slate-500 hover:text-slate-800 font-semibold text-xs flex items-center gap-2">
+            <i class="fas fa-tags"></i> Expense Categories
+          </button>
+          <button id="master-tab-modes" onclick="switchMasterTab('modes')" class="px-4 py-3 text-slate-500 hover:text-slate-800 font-semibold text-xs flex items-center gap-2">
+            <i class="fas fa-wallet"></i> Payment Modes
+          </button>
+        </div>
+
+        <!-- Tab 1: Courses Master -->
+        <div id="master-view-courses" class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          <div class="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+            <h3 class="font-bold text-slate-800 text-sm">Course / Program Catalog</h3>
+            <span class="text-xs text-slate-400">Controls default fees and student enrollment options</span>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left">
+              <thead class="bg-slate-50 text-[11px] font-bold text-slate-500 uppercase tracking-wider border-b border-slate-200">
+                <tr>
+                  <th class="py-3 px-4">Code</th>
+                  <th class="py-3 px-4">Program / Course Name</th>
+                  <th class="py-3 px-4">Category</th>
+                  <th class="py-3 px-4">Duration</th>
+                  <th class="py-3 px-4 text-right">Standard Fee (₹)</th>
+                  <th class="py-3 px-4 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="master-courses-tbody" class="divide-y divide-slate-100">
+                <!-- Dynamically populated -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Tab 2: Expense Categories Master -->
+        <div id="master-view-categories" class="hidden space-y-4">
+          <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm max-w-xl">
+            <h4 class="font-bold text-slate-800 text-xs uppercase tracking-wider mb-2">Add New Expense Category</h4>
+            <form onsubmit="submitAddCategory(event)" class="flex gap-2">
+              <input type="text" id="new-cat-name" required placeholder="e.g. Laboratory Equipment / Faculty Honorarium" class="flex-grow px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-[#005696]">
+              <button type="submit" class="px-4 py-2 bg-[#005696] hover:bg-[#004375] text-white font-bold text-xs rounded-xl shadow transition">Add Category</button>
+            </form>
+          </div>
+          <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden p-5">
+            <h4 class="font-bold text-slate-800 text-sm mb-3">Configured Expense Categories</h4>
+            <div id="master-categories-list" class="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <!-- Dynamically populated -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Tab 3: Payment Modes Master -->
+        <div id="master-view-modes" class="hidden space-y-4">
+          <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm max-w-xl">
+            <h4 class="font-bold text-slate-800 text-xs uppercase tracking-wider mb-2">Add New Payment Mode</h4>
+            <form onsubmit="submitAddPaymentMode(event)" class="flex gap-2">
+              <input type="text" id="new-mode-name" required placeholder="e.g. Razorpay Payment Gateway / Wire Transfer" class="flex-grow px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-[#005696]">
+              <button type="submit" class="px-4 py-2 bg-[#005696] hover:bg-[#004375] text-white font-bold text-xs rounded-xl shadow transition">Add Mode</button>
+            </form>
+          </div>
+          <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden p-5">
+            <h4 class="font-bold text-slate-800 text-sm mb-3">Configured Payment Modes</h4>
+            <div id="master-modes-list" class="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <!-- Dynamically populated -->
+            </div>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- ===================================================================== -->
+      <!-- MODULE 9: SETTINGS & CONFIGURATION (Req 5, 6, 7, 8, 10, 11) -->
+      <!-- ===================================================================== -->
+      <section id="books-view-settings" class="p-6 hidden space-y-6">
+        
+        <!-- Header -->
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+          <div class="flex items-center gap-2">
+            <span class="px-2.5 py-0.5 bg-blue-50 text-[#005696] border border-blue-200 rounded text-[11px] font-bold uppercase tracking-wider">Administration</span>
+            <span class="text-xs text-slate-400">• Institutional Profile & Controls</span>
+          </div>
+          <h2 class="text-xl font-black text-slate-900 font-display mt-1">Settings & ERP Configuration</h2>
+          <p class="text-xs text-slate-500">Configure legal business information, GSTIN, digital signatures, bank accounts, staff roles, and automated WhatsApp templates.</p>
+        </div>
+
+        <!-- Settings Nav Tabs -->
+        <div class="flex items-center border-b border-slate-200 bg-white px-4 rounded-xl shadow-sm gap-2 overflow-x-auto">
+          <button id="settings-tab-org" onclick="switchSettingsTab('org')" class="px-4 py-3 border-b-2 border-[#005696] font-bold text-xs text-[#005696] whitespace-nowrap flex items-center gap-2">
+            <i class="fas fa-building"></i> Organization & Digital Sign
+          </button>
+          <button id="settings-tab-banking" onclick="switchSettingsTab('banking')" class="px-4 py-3 text-slate-500 hover:text-slate-800 font-semibold text-xs whitespace-nowrap flex items-center gap-2">
+            <i class="fas fa-university"></i> Banking & Payment QR
+          </button>
+          <button id="settings-tab-users" onclick="switchSettingsTab('users')" class="px-4 py-3 text-slate-500 hover:text-slate-800 font-semibold text-xs whitespace-nowrap flex items-center gap-2">
+            <i class="fas fa-users-cog"></i> Users & Roles
+          </button>
+          <button id="settings-tab-whatsapp" onclick="switchSettingsTab('whatsapp')" class="px-4 py-3 text-slate-500 hover:text-slate-800 font-semibold text-xs whitespace-nowrap flex items-center gap-2">
+            <i class="fab fa-whatsapp text-emerald-600"></i> WhatsApp Template & QR
+          </button>
+        </div>
+
+        <!-- View 1: Organization & Digital Sign -->
+        <div id="settings-view-org" class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <form onsubmit="saveOrgProfile(event)" class="lg:col-span-8 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4 text-xs">
+            <h3 class="font-bold text-slate-800 text-sm border-b pb-2 flex items-center gap-2">
+              <i class="fas fa-id-card text-[#005696]"></i> Institution Legal Profile
+            </h3>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label class="block font-semibold text-slate-700 mb-1">Institution Display Name *</label>
+                <input type="text" id="set-org-name" required class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#005696]">
+              </div>
+              <div>
+                <label class="block font-semibold text-slate-700 mb-1">Legal Registered Name *</label>
+                <input type="text" id="set-org-legal" required class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#005696]">
+              </div>
+            </div>
+
+            <div>
+              <label class="block font-semibold text-slate-700 mb-1">Tagline / Motto</label>
+              <input type="text" id="set-org-tagline" class="w-full p-2.5 bg-white border border-slate-300 rounded-xl">
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div>
+                <label class="block font-semibold text-slate-700 mb-1">GSTIN Number *</label>
+                <input type="text" id="set-org-gstin" required class="w-full p-2.5 bg-white border border-slate-300 rounded-xl font-mono uppercase font-bold">
+              </div>
+              <div>
+                <label class="block font-semibold text-slate-700 mb-1">PAN Number *</label>
+                <input type="text" id="set-org-pan" required class="w-full p-2.5 bg-white border border-slate-300 rounded-xl font-mono uppercase font-bold">
+              </div>
+              <div>
+                <label class="block font-semibold text-slate-700 mb-1">SAC Code (Education)</label>
+                <input type="text" id="set-org-sac" class="w-full p-2.5 bg-white border border-slate-300 rounded-xl font-mono">
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div>
+                <label class="block font-semibold text-slate-700 mb-1">Official Phone *</label>
+                <input type="text" id="set-org-phone" required class="w-full p-2.5 bg-white border border-slate-300 rounded-xl">
+              </div>
+              <div>
+                <label class="block font-semibold text-slate-700 mb-1">Accounts Email *</label>
+                <input type="email" id="set-org-email" required class="w-full p-2.5 bg-white border border-slate-300 rounded-xl">
+              </div>
+              <div>
+                <label class="block font-semibold text-slate-700 mb-1">Website URL</label>
+                <input type="text" id="set-org-website" class="w-full p-2.5 bg-white border border-slate-300 rounded-xl">
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label class="block font-semibold text-slate-700 mb-1">Address Line 1 *</label>
+                <input type="text" id="set-org-address1" required class="w-full p-2.5 bg-white border border-slate-300 rounded-xl">
+              </div>
+              <div>
+                <label class="block font-semibold text-slate-700 mb-1">Address Line 2</label>
+                <input type="text" id="set-org-address2" class="w-full p-2.5 bg-white border border-slate-300 rounded-xl">
+              </div>
+            </div>
+
+            <div class="grid grid-cols-3 gap-3">
+              <div>
+                <label class="block font-semibold text-slate-700 mb-1">City *</label>
+                <input type="text" id="set-org-city" required class="w-full p-2.5 bg-white border border-slate-300 rounded-xl">
+              </div>
+              <div>
+                <label class="block font-semibold text-slate-700 mb-1">State *</label>
+                <input type="text" id="set-org-state" required class="w-full p-2.5 bg-white border border-slate-300 rounded-xl">
+              </div>
+              <div>
+                <label class="block font-semibold text-slate-700 mb-1">PIN Code *</label>
+                <input type="text" id="set-org-pincode" required class="w-full p-2.5 bg-white border border-slate-300 rounded-xl font-mono">
+              </div>
+            </div>
+
+            <!-- Digital Signature Settings (Req 6) -->
+            <div class="pt-4 border-t border-slate-200 space-y-3">
+              <div class="flex items-center justify-between">
+                <div>
+                  <h4 class="font-bold text-slate-800 text-sm flex items-center gap-1.5">
+                    <i class="fas fa-signature text-purple-700"></i> Digital Signature
+                  </h4>
+                  <p class="text-[11px] text-slate-400">Printed automatically on official fee invoices and receipts.</p>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" id="set-sign-enabled" class="sr-only peer" checked>
+                  <div class="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#005696]"></div>
+                </label>
+              </div>
+
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label class="block font-semibold text-slate-700 mb-1">Signatory Name</label>
+                  <input type="text" id="set-sign-name" class="w-full p-2 bg-white border border-slate-300 rounded-xl">
+                </div>
+                <div>
+                  <label class="block font-semibold text-slate-700 mb-1">Signatory Title / Designation</label>
+                  <input type="text" id="set-sign-title" class="w-full p-2 bg-white border border-slate-300 rounded-xl">
+                </div>
+              </div>
+
+              <div>
+                <label class="block font-semibold text-slate-700 mb-1">Upload Signature Stamp / Image (PNG / JPG)</label>
+                <input type="file" id="set-sign-file" accept="image/*" onchange="handleSignatureFileUpload(event)" class="w-full p-2 bg-slate-50 border border-slate-300 rounded-xl text-xs file:mr-3 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-[#005696] file:text-white hover:file:bg-[#004375]">
+              </div>
+            </div>
+
+            <div class="pt-3 flex justify-end">
+              <button type="submit" class="py-2.5 px-6 bg-[#005696] hover:bg-[#004375] text-white font-bold rounded-xl shadow transition">
+                <i class="fas fa-save mr-1.5"></i> Save Profile & Signature
+              </button>
+            </div>
+          </form>
+
+          <div class="lg:col-span-4 space-y-4">
+            <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm text-xs">
+              <h4 class="font-bold text-slate-800 text-sm mb-2">Signature Live Preview</h4>
+              <p class="text-slate-400 mb-4 text-[11px]">How it appears on Tax Invoices and Fee Receipts:</p>
+              <div class="border border-dashed border-slate-300 p-4 rounded-xl text-center bg-slate-50">
+                <div id="set-sign-preview" class="h-14 flex items-center justify-center mb-2">
+                  <span class="italic text-base font-serif text-slate-800">Authorized Signatory</span>
+                </div>
+                <div class="text-[11px] font-bold text-slate-700 uppercase tracking-wider">Authorized Officer</div>
+                <div class="text-[10px] text-slate-500">Canford International Institute LLP</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- View 2: Banking & QR Code -->
+        <div id="settings-view-banking" class="hidden grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <form onsubmit="saveBankDetails(event)" class="lg:col-span-8 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4 text-xs">
+            <h3 class="font-bold text-slate-800 text-sm border-b pb-2 flex items-center gap-2">
+              <i class="fas fa-university text-emerald-700"></i> Institutional Bank Account (Fee Collections)
+            </h3>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label class="block font-semibold text-slate-700 mb-1">Bank Name *</label>
+                <input type="text" id="set-bank-name" required class="w-full p-2.5 bg-white border border-slate-300 rounded-xl font-bold">
+              </div>
+              <div>
+                <label class="block font-semibold text-slate-700 mb-1">Account Beneficiary Name *</label>
+                <input type="text" id="set-bank-accname" required class="w-full p-2.5 bg-white border border-slate-300 rounded-xl">
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label class="block font-semibold text-slate-700 mb-1">Account Number *</label>
+                <input type="text" id="set-bank-accno" required class="w-full p-2.5 bg-white border border-slate-300 rounded-xl font-mono text-sm font-bold text-slate-900">
+              </div>
+              <div>
+                <label class="block font-semibold text-slate-700 mb-1">IFSC Code *</label>
+                <input type="text" id="set-bank-ifsc" required class="w-full p-2.5 bg-white border border-slate-300 rounded-xl font-mono uppercase font-bold text-slate-900">
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label class="block font-semibold text-slate-700 mb-1">Branch Name</label>
+                <input type="text" id="set-bank-branch" class="w-full p-2.5 bg-white border border-slate-300 rounded-xl">
+              </div>
+              <div>
+                <label class="block font-semibold text-slate-700 mb-1">UPI VPA / ID (for instant QR) *</label>
+                <input type="text" id="set-bank-upi" required oninput="updateSettingsQrPreview()" class="w-full p-2.5 bg-white border border-slate-300 rounded-xl font-mono text-emerald-800 font-bold">
+              </div>
+            </div>
+
+            <div class="pt-3 border-t border-slate-200">
+              <label class="block font-semibold text-slate-700 mb-1">Custom Company Payment QR Code Image (Req 10)</label>
+              <input type="file" id="set-bank-qr-file" accept="image/*" onchange="handleQrFileUpload(event)" class="w-full p-2 bg-slate-50 border border-slate-300 rounded-xl text-xs file:mr-3 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-emerald-700 file:text-white hover:file:bg-emerald-800">
+              <input type="hidden" id="set-bank-qr">
+              <p class="text-[11px] text-slate-400 mt-1">If not uploaded, a clean standard UPI payment QR code is generated dynamically from your UPI ID.</p>
+            </div>
+
+            <div class="pt-3 flex justify-end">
+              <button type="submit" class="py-2.5 px-6 bg-emerald-700 hover:bg-emerald-800 text-white font-bold rounded-xl shadow transition">
+                <i class="fas fa-save mr-1.5"></i> Save Banking & QR Details
+              </button>
+            </div>
+          </form>
+
+          <div class="lg:col-span-4 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm text-center">
+            <h4 class="font-bold text-slate-800 text-sm mb-1">Company QR Preview</h4>
+            <p class="text-slate-400 text-[11px] mb-4">Included on invoices and WhatsApp payment reminders</p>
+            <div id="set-qr-preview" class="p-3 bg-slate-50 rounded-2xl border border-slate-200 inline-block mb-3"></div>
+            <p class="text-xs font-bold text-slate-700">Official Fee Collection QR</p>
+          </div>
+        </div>
+
+        <!-- View 3: Users & Roles -->
+        <div id="settings-view-users" class="hidden bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          <div class="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+            <div>
+              <h3 class="font-bold text-slate-800 text-sm">System Users & Administrative Roles</h3>
+              <p class="text-xs text-slate-400">Manage institutional staff accounts and accounting permissions</p>
+            </div>
+            <button onclick="openAddUserModal()" class="px-4 py-2 bg-[#005696] hover:bg-[#004375] text-white font-bold text-xs rounded-xl shadow transition flex items-center gap-1.5">
+              <i class="fas fa-user-plus"></i> Add Staff User
+            </button>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left">
+              <thead class="bg-slate-50 text-[11px] font-bold text-slate-500 uppercase tracking-wider border-b border-slate-200">
+                <tr>
+                  <th class="py-3 px-4">User ID</th>
+                  <th class="py-3 px-4">Full Name</th>
+                  <th class="py-3 px-4">Email</th>
+                  <th class="py-3 px-4">Role</th>
+                  <th class="py-3 px-4">Status</th>
+                  <th class="py-3 px-4 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="settings-users-tbody" class="divide-y divide-slate-100">
+                <!-- Dynamically populated -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- View 4: WhatsApp Template Customization (Req 10 & 11) -->
+        <div id="settings-view-whatsapp" class="hidden grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <form onsubmit="saveWhatsAppTemplate(event)" class="lg:col-span-7 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4 text-xs">
+            <div class="flex justify-between items-center border-b pb-2">
+              <div>
+                <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2">
+                  <i class="fab fa-whatsapp text-emerald-600 text-base"></i> WhatsApp Reminder Customizer
+                </h3>
+                <p class="text-[11px] text-slate-400">Customize the message sent when clicking "WhatsApp Reminder" on students or invoices.</p>
+              </div>
+              <button type="button" onclick="resetWhatsAppTemplateDefault()" class="text-rose-600 hover:underline text-[11px] font-semibold">
+                Reset Default
+              </button>
+            </div>
+
+            <div>
+              <label class="block font-bold text-slate-700 uppercase tracking-wider text-[11px] mb-1.5">Insert Placeholders:</label>
+              <div class="flex flex-wrap gap-1.5 mb-2">
+                <button type="button" onclick="insertTemplateTag('{student_name}')" class="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded text-[11px] font-mono font-semibold">+ {student_name}</button>
+                <button type="button" onclick="insertTemplateTag('{course_name}')" class="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded text-[11px] font-mono font-semibold">+ {course_name}</button>
+                <button type="button" onclick="insertTemplateTag('{balance_amount}')" class="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded text-[11px] font-mono font-semibold">+ {balance_amount}</button>
+                <button type="button" onclick="insertTemplateTag('{due_date}')" class="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded text-[11px] font-mono font-semibold">+ {due_date}</button>
+                <button type="button" onclick="insertTemplateTag('{qr_link}')" class="px-2 py-1 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded text-[11px] font-mono font-bold">+ {qr_link}</button>
+                <button type="button" onclick="insertTemplateTag('{upi_id}')" class="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded text-[11px] font-mono font-semibold">+ {upi_id}</button>
+                <button type="button" onclick="insertTemplateTag('{bank_name}')" class="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded text-[11px] font-mono font-semibold">+ {bank_name}</button>
+                <button type="button" onclick="insertTemplateTag('{account_no}')" class="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded text-[11px] font-mono font-semibold">+ {account_no}</button>
+                <button type="button" onclick="insertTemplateTag('{ifsc_code}')" class="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded text-[11px] font-mono font-semibold">+ {ifsc_code}</button>
+              </div>
+
+              <textarea id="set-whatsapp-template" rows="12" oninput="updateWhatsAppPreview()" class="w-full p-3 bg-slate-50 border border-slate-300 rounded-xl font-mono text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 leading-relaxed"></textarea>
+            </div>
+
+            <div class="pt-2 flex justify-end">
+              <button type="submit" class="py-2.5 px-6 bg-emerald-700 hover:bg-emerald-800 text-white font-bold rounded-xl shadow transition">
+                <i class="fas fa-save mr-1.5"></i> Save Template
+              </button>
+            </div>
+          </form>
+
+          <div class="lg:col-span-5 bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col text-xs">
+            <h4 class="font-bold text-slate-800 text-sm mb-2 flex items-center gap-1.5">
+              <i class="fab fa-whatsapp text-emerald-600"></i> WhatsApp Message Live Preview
+            </h4>
+            <div class="bg-[#efeae2] p-4 rounded-xl border border-[#d1d7db] flex-grow font-sans text-xs text-slate-800 whitespace-pre-wrap leading-relaxed shadow-inner overflow-y-auto max-h-[450px]" id="set-whatsapp-preview">
+              <!-- Live preview -->
+            </div>
+          </div>
+        </div>
+
+      </section>
+
+    </main>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- MODALS -->
+  <!-- ========================================================================= -->
+
+  <!-- MODAL 1: CREATE NEW INVOICE -->
+  <div id="new-invoice-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 glass-overlay">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden border border-slate-200 text-xs">
+      <div class="bg-[#005696] text-white p-4 flex justify-between items-center">
+        <h3 class="text-sm font-bold"><i class="fas fa-file-invoice mr-1.5"></i> Create New Fee Invoice</h3>
+        <button onclick="closeNewInvoiceModal()" class="text-white/70 hover:text-white"><i class="fas fa-times"></i></button>
+      </div>
+
+      <form onsubmit="submitNewInvoice(event)" class="p-5 space-y-3">
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Select Candidate / Student *</label>
+          <select id="new-inv-student" required class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:outline-none"></select>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Invoice Date *</label>
+            <input type="date" id="new-inv-date" required class="w-full p-2 bg-slate-50 border border-slate-300 rounded-xl font-bold">
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Due Date *</label>
+            <input type="date" id="new-inv-due-date" required class="w-full p-2 bg-slate-50 border border-slate-300 rounded-xl">
+          </div>
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Fee Particulars / Course Item *</label>
+          <input type="text" id="new-inv-item-name" required value="CMA USA Part 2 Coaching & Hock Material" class="w-full p-2 bg-white border border-slate-300 rounded-xl">
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Fee Rate (₹) *</label>
+            <input type="number" id="new-inv-item-rate" required min="100" value="25000" class="w-full p-2 bg-white border border-slate-300 rounded-xl font-bold font-mono">
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Discount / Scholarship (₹)</label>
+            <input type="number" id="new-inv-discount" min="0" value="0" class="w-full p-2 bg-white border border-slate-300 rounded-xl font-mono">
+          </div>
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Customer Notes / Payment Terms</label>
+          <input type="text" id="new-inv-notes" value="Payable upon receipt via UPI or Bank Transfer" class="w-full p-2 bg-white border border-slate-300 rounded-xl">
+        </div>
+
+        <div class="pt-2 flex justify-end gap-2 border-t border-slate-100">
+          <button type="button" onclick="closeNewInvoiceModal()" class="py-2 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl">Cancel</button>
+          <button type="submit" class="py-2 px-5 bg-[#005696] hover:bg-[#004375] text-white font-bold rounded-xl shadow">Save & Generate Invoice</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL 2: INVOICE PAYMENT RECORDING -->
+  <div id="invoice-payment-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 glass-overlay">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden border border-slate-200 text-xs">
+      <div class="bg-emerald-700 text-white p-4 flex justify-between items-center">
+        <h3 id="inv-pay-title" class="text-sm font-bold">Record Payment for Invoice</h3>
+        <button onclick="closeInvoicePaymentModal()" class="text-white/70 hover:text-white"><i class="fas fa-times"></i></button>
+      </div>
+
+      <form onsubmit="submitInvoicePayment(event)" class="p-5 space-y-3">
+        <input type="hidden" id="inv-pay-id">
+        <div class="bg-slate-50 p-3 rounded-xl border border-slate-200">
+          <p class="font-bold text-slate-900" id="inv-pay-student">Student Name</p>
+          <div class="flex justify-between mt-1 text-slate-600 font-bold">
+            <span>Balance Due:</span>
+            <span class="text-amber-800 font-mono" id="inv-pay-balance">₹0</span>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Payment Date *</label>
+            <input type="date" id="inv-pay-date" required class="w-full p-2.5 bg-white border border-slate-300 rounded-xl font-bold">
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Payment Amount (₹) *</label>
+            <input type="number" id="inv-pay-amount" required min="1" class="w-full p-2.5 bg-white border border-slate-300 rounded-xl text-base font-bold font-mono text-emerald-800">
+          </div>
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Payment Mode *</label>
+          <select id="inv-pay-mode" class="w-full p-2 bg-white border border-slate-300 rounded-xl">
+            <option value="Bank Transfer (NEFT/RTGS)">Bank Transfer (NEFT / RTGS)</option>
+            <option value="UPI / PhonePe / GPay">UPI (PhonePe / GPay)</option>
+            <option value="Cash / Direct">Cash / Direct Office</option>
+            <option value="Cheque / DD">Cheque / Demand Draft</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Reference / UTR / Cheque #</label>
+          <input type="text" id="inv-pay-ref" placeholder="e.g. UTR-92810482" class="w-full p-2 bg-white border border-slate-300 rounded-xl font-mono">
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Internal Notes</label>
+          <input type="text" id="inv-pay-notes" value="Payment verified at Calicut Accounts Desk" class="w-full p-2 bg-white border border-slate-300 rounded-xl">
+        </div>
+
+        <div class="pt-2 flex justify-end gap-2">
+          <button type="button" onclick="closeInvoicePaymentModal()" class="py-2 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl">Cancel</button>
+          <button type="submit" class="py-2 px-5 bg-emerald-700 hover:bg-emerald-800 text-white font-bold rounded-xl shadow">Record & Clear Invoice</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL 3: RECORD EXPENSE -->
+  <div id="add-expense-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 glass-overlay">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden border border-slate-200 text-xs">
+      <div class="bg-[#072a4a] text-white p-4 flex justify-between items-center">
+        <h3 class="text-sm font-bold"><i class="fas fa-receipt mr-1.5"></i> Record Operating Expense</h3>
+        <button onclick="closeAddExpenseModal()" class="text-white/70 hover:text-white"><i class="fas fa-times"></i></button>
+      </div>
+
+      <form onsubmit="submitNewExpense(event)" class="p-5 space-y-3">
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Expense Particulars *</label>
+          <input type="text" id="new-exp-particulars" required placeholder="e.g. Meta Ads / Brochure Printing" class="w-full p-2 bg-white border border-slate-300 rounded-xl">
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Category *</label>
+          <select id="new-exp-category" class="w-full p-2 bg-white border border-slate-300 rounded-xl">
+            <option value="Advertising & Marketing">Advertising & Marketing</option>
+            <option value="IT & Software Subscriptions">IT & Software Subscriptions</option>
+            <option value="Legal & Professional Fees">Legal & Professional Fees</option>
+            <option value="Telephone & Internet">Telephone & Internet</option>
+            <option value="Course Materials & Licensing">Course Materials & Licensing</option>
+            <option value="Printing & Stationery">Printing & Stationery</option>
+            <option value="Rent & Utilities">Rent & Utilities</option>
+          </select>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Expense Date *</label>
+            <input type="date" id="new-exp-date" required class="w-full p-2 bg-white border border-slate-300 rounded-xl font-bold">
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Amount (₹) *</label>
+            <input type="number" id="new-exp-amount" required min="1" step="any" placeholder="1000" class="w-full p-2 bg-white border border-slate-300 rounded-xl font-bold font-mono">
+          </div>
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Paid Through *</label>
+          <select id="new-exp-mode" class="w-full p-2 bg-white border border-slate-300 rounded-xl">
+            <option value="Bank Transfer">Bank Transfer</option>
+            <option value="UPI">UPI</option>
+            <option value="Cash">Cash</option>
+            <option value="Card">Card</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Vendor / Payee</label>
+          <input type="text" id="new-exp-vendor" placeholder="e.g. Meta / Telecom / Agency" class="w-full p-2 bg-white border border-slate-300 rounded-xl">
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Reference #</label>
+          <input type="text" id="new-exp-ref" placeholder="TXN / Receipt Ref" class="w-full p-2 bg-white border border-slate-300 rounded-xl font-mono">
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Notes</label>
+          <input type="text" id="new-exp-notes" placeholder="Operational note" class="w-full p-2 bg-white border border-slate-300 rounded-xl">
+        </div>
+
+        <div class="pt-2 flex justify-end gap-2">
+          <button type="button" onclick="closeAddExpenseModal()" class="py-2 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl">Cancel</button>
+          <button type="submit" class="py-2 px-5 bg-rose-700 hover:bg-rose-800 text-white font-bold rounded-xl shadow">Save Expense</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL 4: MANUAL STUDENT PAYMENT MODAL -->
+  <div id="manual-collect-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 glass-overlay">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden border border-slate-200">
+      <div class="bg-[#072a4a] text-white p-4 flex justify-between items-center">
+        <h3 class="text-base font-bold">Record Student Fee</h3>
+        <button onclick="closeCollectModal()" class="text-white/70 hover:text-white"><i class="fas fa-times"></i></button>
+      </div>
+
+      <form onsubmit="submitManualPayment(event)" class="p-5 space-y-4 text-xs">
+        <input type="hidden" id="manual-student-id">
+        <div class="bg-slate-50 p-3 rounded-xl border border-slate-200">
+          <p class="font-bold text-slate-900 text-sm" id="manual-student-name">Student Name</p>
+          <p class="text-slate-500 text-[11px]" id="manual-student-course">Course</p>
+          <div class="flex justify-between font-bold mt-1 text-slate-700">
+            <span>Pending Balance:</span>
+            <span class="text-amber-800" id="manual-balance">₹0</span>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Payment Date *</label>
+            <input type="date" id="manual-date" required class="w-full p-2.5 bg-white border border-slate-300 rounded-xl text-xs font-bold">
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Amount Collected (₹) *</label>
+            <input type="number" id="manual-amount" required min="1" class="w-full p-2.5 bg-white border border-slate-300 rounded-xl text-sm font-bold text-slate-900 font-mono">
+          </div>
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Payment Mode *</label>
+          <select id="manual-mode" class="w-full p-2.5 bg-white border border-slate-300 rounded-xl text-xs">
+            <option value="Cash / Direct">Cash / Direct Office</option>
+            <option value="Bank Transfer (NEFT/RTGS)">Bank Transfer (NEFT / RTGS)</option>
+            <option value="Cheque / DD">Cheque / Demand Draft</option>
+            <option value="UPI / PhonePe / GPay">UPI (PhonePe / GPay)</option>
+            <option value="POS Card Swipe">POS Card Swipe</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Transaction Ref / Cheque No / UTR</label>
+          <input type="text" id="manual-ref" placeholder="e.g. UTR-92810348 or Cheque #49201" class="w-full p-2 bg-white border border-slate-300 rounded-xl text-xs font-mono">
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Particulars</label>
+          <input type="text" id="manual-particulars" value="Course Fee Installment" class="w-full p-2 bg-white border border-slate-300 rounded-xl text-xs">
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Notes / Remarks</label>
+          <textarea id="manual-notes" rows="2" placeholder="Fee received and verified at accounts desk" class="w-full p-2 bg-white border border-slate-300 rounded-xl text-xs"></textarea>
+        </div>
+
+        <div class="pt-2 flex justify-end gap-2">
+          <button type="button" onclick="closeCollectModal()" class="py-2 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl">Cancel</button>
+          <button type="submit" class="py-2 px-5 bg-emerald-700 hover:bg-emerald-800 text-white font-bold rounded-xl shadow">Save & Generate Receipt</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL 5: ENROLL NEW STUDENT -->
+  <div id="add-student-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 glass-overlay">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-xl w-full overflow-hidden border border-slate-200">
+      <div class="bg-gradient-to-r from-[#005696] to-[#072a4a] text-white p-5 flex justify-between items-center">
+        <div>
+          <span class="text-[11px] font-bold text-[#C5A059] uppercase tracking-wider">Candidate Master</span>
+          <h3 class="text-lg font-black font-display">Enroll New Student</h3>
+        </div>
+        <button onclick="closeAddStudentModal()" class="text-white/70 hover:text-white"><i class="fas fa-times"></i></button>
+      </div>
+
+      <form onsubmit="handleAddStudentSubmit(event)" class="p-6 space-y-4 text-xs">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Student Full Name *</label>
+            <input type="text" id="new-student-name" required placeholder="e.g. Mohammed Salih" class="w-full p-2.5 bg-white border border-slate-300 rounded-xl">
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Select Program / Course *</label>
+            <select id="new-student-course" required class="w-full p-2.5 bg-white border border-slate-300 rounded-xl">
+              <option value="cma-usa-comp">CMA USA Comprehensive (₹85,000)</option>
+              <option value="cma-usa-p2">CMA USA Part 2 (₹45,000)</option>
+              <option value="cma-usa-p1">CMA USA Part 1 (₹45,000)</option>
+              <option value="ifrs-dip">Diploma in IFRS (₹38,000)</option>
+              <option value="biz-analytics">Business Analytics & AI (₹50,000)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Contact Phone (10 digits) *</label>
+            <input type="tel" id="new-student-phone" required placeholder="9895577123" class="w-full p-2.5 bg-white border border-slate-300 rounded-xl">
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Email Address</label>
+            <input type="email" id="new-student-email" placeholder="student@example.com" class="w-full p-2.5 bg-white border border-slate-300 rounded-xl">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Place / City</label>
+            <input type="text" id="new-student-place" placeholder="Calicut / Malappuram" class="w-full p-2.5 bg-white border border-slate-300 rounded-xl">
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Qualification</label>
+            <input type="text" id="new-student-qualification" placeholder="B.Com / Degree" class="w-full p-2.5 bg-white border border-slate-300 rounded-xl">
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Batch</label>
+            <input type="text" id="new-student-batch" value="Regular Batch 2025" class="w-full p-2.5 bg-white border border-slate-300 rounded-xl">
+          </div>
+        </div>
+
+        <div class="border-t border-slate-200 pt-3">
+          <label class="block font-bold text-slate-800 mb-1">Admission Fee Collection (Optional)</label>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-slate-500 mb-1">Initial Amount Collected (₹)</label>
+              <input type="number" id="new-student-initial-pay" min="0" placeholder="0" class="w-full p-2.5 bg-white border border-slate-300 rounded-xl font-bold font-mono">
+            </div>
+            <div>
+              <label class="block text-slate-500 mb-1">Initial Payment Mode</label>
+              <select id="new-student-pay-mode" class="w-full p-2.5 bg-white border border-slate-300 rounded-xl">
+                <option value="Cash / Direct">Cash / Direct</option>
+                <option value="Bank Transfer">Bank Transfer (NEFT/RTGS)</option>
+                <option value="UPI / PhonePe">UPI / Google Pay</option>
+                <option value="POS Card">Card Swipe</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="pt-3 flex justify-end gap-2 border-t border-slate-100">
+          <button type="button" onclick="closeAddStudentModal()" class="py-2.5 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl">Cancel</button>
+          <button type="submit" class="py-2.5 px-6 bg-[#005696] hover:bg-[#004375] text-white font-bold rounded-xl shadow">Enroll Student</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL 6: STUDENT FULL PROFILE VIEW -->
+  <div id="student-profile-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 glass-overlay">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-slate-200">
+      <div class="p-6" id="student-profile-content"></div>
+      <div class="bg-slate-50 px-6 py-3 border-t border-slate-200 flex justify-end">
+        <button onclick="closeStudentProfileModal()" class="py-2 px-5 bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold text-xs rounded-xl">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 7: ONLINE CHECKOUT MODAL -->
+  <div id="checkout-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 glass-overlay">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden border border-slate-200">
+      <div class="bg-gradient-to-r from-[#005696] to-[#072a4a] text-white p-5 flex justify-between items-center">
+        <div>
+          <span class="text-[11px] font-bold text-amber-300 uppercase tracking-wider">Canford Secure Checkout</span>
+          <h3 class="text-lg font-black font-display">Pay Student Course Fee</h3>
+        </div>
+        <button onclick="closeCheckoutModal()" class="text-white/70 hover:text-white text-xl"><i class="fas fa-times"></i></button>
+      </div>
+
+      <div class="p-6 space-y-5 text-xs">
+        <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-200">
+          <div class="flex justify-between items-center">
+            <span class="font-bold text-slate-800 text-sm" id="checkout-student-name">Student Name</span>
+            <span class="font-mono text-[#005696] font-bold" id="checkout-student-id">CAN-2025-001</span>
+          </div>
+          <p class="text-slate-500 mt-0.5" id="checkout-course">Course Name</p>
+          <div class="border-t border-slate-200 mt-2 pt-2 flex justify-between font-bold">
+            <span class="text-slate-600">Total Outstanding Balance:</span>
+            <span class="text-amber-800 font-mono" id="checkout-balance">₹0</span>
+          </div>
+        </div>
+
+        <div>
+          <label class="block font-bold text-slate-700 uppercase tracking-wider mb-2">Select Amount</label>
+          <div class="space-y-2">
+            <label class="flex items-center gap-3 p-3 border border-slate-200 rounded-xl cursor-pointer hover:bg-slate-50 transition">
+              <input type="radio" name="pay-option" id="opt-next-installment" checked onchange="handleAmountOptionChange()" class="text-[#005696]">
+              <span id="opt-next-installment-text">Next Installment</span>
+            </label>
+            <label class="flex items-center gap-3 p-3 border border-slate-200 rounded-xl cursor-pointer hover:bg-slate-50 transition">
+              <input type="radio" name="pay-option" id="opt-full-balance" onchange="handleAmountOptionChange()" class="text-[#005696]">
+              <span id="opt-full-balance-text">Full Remaining Balance</span>
+            </label>
+            <label class="flex items-center gap-3 p-3 border border-slate-200 rounded-xl cursor-pointer hover:bg-slate-50 transition">
+              <input type="radio" name="pay-option" id="opt-custom" onchange="handleAmountOptionChange()" class="text-[#005696]">
+              <div class="flex-grow flex items-center justify-between">
+                <span>Custom Partial Amount:</span>
+                <div class="relative w-32">
+                  <span class="absolute left-2.5 top-1 text-slate-400 font-bold">₹</span>
+                  <input type="number" id="checkout-custom-amount" min="100" oninput="handleCustomAmountChange(this.value)" class="w-full pl-6 pr-2 py-1 bg-white border border-slate-300 rounded font-bold text-slate-900 focus:outline-none">
+                </div>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <div>
+          <label class="block font-bold text-slate-700 uppercase tracking-wider mb-2">Payment Method</label>
+          <div class="grid grid-cols-3 gap-2 mb-3">
+            <button type="button" id="pay-tab-upi" onclick="selectPaymentMethod('upi')" class="py-2.5 px-4 rounded-xl font-semibold bg-[#005696] text-white shadow-md">
+              <i class="fas fa-qrcode mr-1"></i> UPI / QR
+            </button>
+            <button type="button" id="pay-tab-card" onclick="selectPaymentMethod('card')" class="py-2.5 px-4 rounded-xl font-semibold bg-slate-100 text-slate-600">
+              <i class="far fa-credit-card mr-1"></i> Card
+            </button>
+            <button type="button" id="pay-tab-netbanking" onclick="selectPaymentMethod('netbanking')" class="py-2.5 px-4 rounded-xl font-semibold bg-slate-100 text-slate-600">
+              <i class="fas fa-university mr-1"></i> NetBank
+            </button>
+          </div>
+
+          <div id="pay-panel-upi" class="p-4 bg-slate-50 border border-slate-200 rounded-xl text-center">
+            <p class="text-xs text-slate-600 mb-2">Scan QR with <strong>GPay, PhonePe, Paytm, or BHIM</strong></p>
+            <div class="inline-block p-2 bg-white rounded-xl border border-slate-300 shadow-sm">
+              <img id="upi-qr-image" src="" alt="UPI QR" class="w-36 h-36 object-contain mx-auto">
+            </div>
+            <p class="text-[11px] text-slate-500 font-mono mt-2">UPI ID: <span class="font-bold text-slate-800">canford@upi</span></p>
+          </div>
+
+          <div id="pay-panel-card" class="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-3 hidden">
+            <div>
+              <label class="block text-slate-600 font-medium mb-1">Card Number</label>
+              <input type="text" id="card-number" placeholder="4532 •••• •••• 8910" class="w-full p-2 bg-white border border-slate-300 rounded-lg font-mono">
+            </div>
+          </div>
+
+          <div id="pay-panel-netbanking" class="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-3 hidden">
+            <select id="netbanking-bank" class="w-full p-2 bg-white border border-slate-300 rounded-lg">
+              <option value="State Bank of India">State Bank of India (SBI)</option>
+              <option value="HDFC Bank">HDFC Bank</option>
+              <option value="ICICI Bank">ICICI Bank</option>
+              <option value="Federal Bank">Federal Bank</option>
+              <option value="Axis Bank">Axis Bank</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="pt-2 border-t border-slate-100 flex items-center justify-between">
+          <div>
+            <span class="text-xs text-slate-500">Payable Now:</span>
+            <div class="text-xl font-black text-emerald-800 font-mono" id="summary-pay-amount">₹0</div>
+          </div>
+          <button id="btn-process-payment" onclick="processPayment()" class="py-3 px-6 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl transition shadow-lg flex items-center gap-2">
+            <i class="fas fa-lock text-xs"></i>
+            <span>Confirm & Pay <span id="pay-btn-amount">₹0</span></span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 8: OFFICIAL PRINTABLE RECEIPT -->
+  <div id="receipt-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 glass-overlay">
+    <div id="receipt-modal-card" class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[95vh] overflow-y-auto border border-slate-200">
+      <div class="no-print bg-slate-900 text-white p-3.5 px-6 flex justify-between items-center text-xs">
+        <span class="font-bold"><i class="fas fa-check-circle text-emerald-400 mr-1.5"></i> Official Payment Voucher / Receipt</span>
+        <div class="flex items-center gap-2">
+          <button onclick="printReceipt()" class="py-1.5 px-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold transition flex items-center gap-1.5">
+            <i class="fas fa-print"></i> Print / PDF
+          </button>
+          <button onclick="closeReceiptModal()" class="text-white/70 hover:text-white pl-2"><i class="fas fa-times"></i></button>
+        </div>
+      </div>
+
+      <div id="receipt-paper" class="p-8 bg-white receipt-watermark text-slate-800"></div>
+    </div>
+  </div>
+
+  <!-- MODAL 9: EDIT INVOICE (Req 3) -->
+  <div id="edit-invoice-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 glass-overlay">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden border border-slate-200 text-xs">
+      <div class="bg-[#005696] text-white p-4 flex justify-between items-center">
+        <h3 id="edit-inv-title" class="text-sm font-bold"><i class="fas fa-edit mr-1.5"></i> Edit Fee Invoice</h3>
+        <button onclick="closeEditInvoiceModal()" class="text-white/70 hover:text-white"><i class="fas fa-times"></i></button>
+      </div>
+
+      <form onsubmit="submitEditInvoice(event)" class="p-5 space-y-3">
+        <input type="hidden" id="edit-inv-id">
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Invoice Date *</label>
+            <input type="date" id="edit-inv-date" required class="w-full p-2 bg-slate-50 border border-slate-300 rounded-xl font-bold">
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Due Date *</label>
+            <input type="date" id="edit-inv-due-date" required class="w-full p-2 bg-slate-50 border border-slate-300 rounded-xl">
+          </div>
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Fee Item / Particulars *</label>
+          <input type="text" id="edit-inv-item-name" required class="w-full p-2 bg-white border border-slate-300 rounded-xl">
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Fee Amount (₹) *</label>
+            <input type="number" id="edit-inv-item-rate" required min="0" class="w-full p-2 bg-white border border-slate-300 rounded-xl font-bold font-mono">
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Discount / Concession (₹)</label>
+            <input type="number" id="edit-inv-discount" min="0" class="w-full p-2 bg-white border border-slate-300 rounded-xl font-mono">
+          </div>
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Notes / Terms</label>
+          <input type="text" id="edit-inv-notes" class="w-full p-2 bg-white border border-slate-300 rounded-xl">
+        </div>
+
+        <div class="p-3 bg-amber-50 border border-amber-200 rounded-xl space-y-1.5">
+          <label class="block font-bold text-amber-900">
+            Mandatory Reason for Editing Invoice * <span class="text-rose-600 font-bold">(Compliance Audit Log)</span>
+          </label>
+          <textarea id="edit-inv-reason" required rows="2" placeholder="State reason (e.g. Fee concession approved by Director, date correction, revised scholarship)..." class="w-full p-2 bg-white border border-amber-300 rounded-lg text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500"></textarea>
+        </div>
+
+        <div class="pt-2 flex justify-end gap-2 border-t border-slate-100">
+          <button type="button" onclick="closeEditInvoiceModal()" class="py-2 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl">Cancel</button>
+          <button type="submit" class="py-2 px-5 bg-[#005696] hover:bg-[#004375] text-white font-bold rounded-xl shadow">Save & Record Revision</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL 10: ADD COURSE (Req 4 & 13) -->
+  <div id="add-course-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 glass-overlay">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden border border-slate-200 text-xs">
+      <div class="bg-[#005696] text-white p-4 flex justify-between items-center">
+        <h3 class="text-sm font-bold"><i class="fas fa-graduation-cap mr-1.5"></i> Add New Program / Course</h3>
+        <button onclick="closeAddCourseModal()" class="text-white/70 hover:text-white"><i class="fas fa-times"></i></button>
+      </div>
+
+      <form onsubmit="submitAddCourse(event)" class="p-5 space-y-3">
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Course Title *</label>
+          <input type="text" id="new-course-title" required placeholder="e.g. CMA USA Part 1" class="w-full p-2 bg-white border border-slate-300 rounded-xl">
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Category *</label>
+            <input type="text" id="new-course-category" required value="Professional Certification" class="w-full p-2 bg-white border border-slate-300 rounded-xl">
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Duration *</label>
+            <input type="text" id="new-course-duration" required placeholder="e.g. 6 Months" class="w-full p-2 bg-white border border-slate-300 rounded-xl">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Total Package Fee (₹) *</label>
+            <input type="number" id="new-course-total" required min="100" placeholder="45000" class="w-full p-2 bg-white border border-slate-300 rounded-xl font-bold font-mono">
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Registration Component (₹)</label>
+            <input type="number" id="new-course-reg" min="0" placeholder="10000" class="w-full p-2 bg-white border border-slate-300 rounded-xl font-mono">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Tuition Fee Component (₹)</label>
+            <input type="number" id="new-course-tuition" min="0" placeholder="25000" class="w-full p-2 bg-white border border-slate-300 rounded-xl font-mono">
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Study Material Component (₹)</label>
+            <input type="number" id="new-course-materials" min="0" placeholder="10000" class="w-full p-2 bg-white border border-slate-300 rounded-xl font-mono">
+          </div>
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Description / Notes</label>
+          <input type="text" id="new-course-desc" placeholder="Course highlights, Hock books included, etc." class="w-full p-2 bg-white border border-slate-300 rounded-xl">
+        </div>
+
+        <div class="pt-2 flex justify-end gap-2 border-t border-slate-100">
+          <button type="button" onclick="closeAddCourseModal()" class="py-2 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl">Cancel</button>
+          <button type="submit" class="py-2 px-5 bg-[#005696] hover:bg-[#004375] text-white font-bold rounded-xl shadow">Add Course to Master</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL 11: EDIT COURSE (Req 13) -->
+  <div id="edit-course-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 glass-overlay">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden border border-slate-200 text-xs">
+      <div class="bg-[#005696] text-white p-4 flex justify-between items-center">
+        <h3 class="text-sm font-bold"><i class="fas fa-edit mr-1.5"></i> Edit Program / Course</h3>
+        <button onclick="closeEditCourseModal()" class="text-white/70 hover:text-white"><i class="fas fa-times"></i></button>
+      </div>
+
+      <form onsubmit="submitEditCourse(event)" class="p-5 space-y-3">
+        <input type="hidden" id="edit-course-id">
+
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Course Title *</label>
+          <input type="text" id="edit-course-title" required class="w-full p-2 bg-white border border-slate-300 rounded-xl font-bold">
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Category *</label>
+            <input type="text" id="edit-course-category" required class="w-full p-2 bg-white border border-slate-300 rounded-xl">
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Duration *</label>
+            <input type="text" id="edit-course-duration" required class="w-full p-2 bg-white border border-slate-300 rounded-xl">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Total Package Fee (₹) *</label>
+            <input type="number" id="edit-course-total" required min="100" class="w-full p-2 bg-white border border-slate-300 rounded-xl font-bold font-mono">
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Registration Component (₹)</label>
+            <input type="number" id="edit-course-reg" min="0" class="w-full p-2 bg-white border border-slate-300 rounded-xl font-mono">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Tuition Fee Component (₹)</label>
+            <input type="number" id="edit-course-tuition" min="0" class="w-full p-2 bg-white border border-slate-300 rounded-xl font-mono">
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Study Material Component (₹)</label>
+            <input type="number" id="edit-course-materials" min="0" class="w-full p-2 bg-white border border-slate-300 rounded-xl font-mono">
+          </div>
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Description / Notes</label>
+          <input type="text" id="edit-course-desc" class="w-full p-2 bg-white border border-slate-300 rounded-xl">
+        </div>
+
+        <div class="pt-2 flex justify-end gap-2 border-t border-slate-100">
+          <button type="button" onclick="closeEditCourseModal()" class="py-2 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl">Cancel</button>
+          <button type="submit" class="py-2 px-5 bg-[#005696] hover:bg-[#004375] text-white font-bold rounded-xl shadow">Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL 12: ADD STAFF USER (Req 8) -->
+  <div id="add-user-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 glass-overlay">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden border border-slate-200 text-xs">
+      <div class="bg-[#005696] text-white p-4 flex justify-between items-center">
+        <h3 class="text-sm font-bold"><i class="fas fa-user-plus mr-1.5"></i> Add Staff User</h3>
+        <button onclick="closeAddUserModal()" class="text-white/70 hover:text-white"><i class="fas fa-times"></i></button>
+      </div>
+
+      <form onsubmit="submitAddUser(event)" class="p-5 space-y-3">
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Full Name *</label>
+          <input type="text" id="new-user-name" required placeholder="e.g. Accounts Officer" class="w-full p-2.5 bg-white border border-slate-300 rounded-xl">
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Email Address *</label>
+          <input type="email" id="new-user-email" required placeholder="staff@canford.in" class="w-full p-2.5 bg-white border border-slate-300 rounded-xl">
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Role / Access Level *</label>
+          <select id="new-user-role" class="w-full p-2.5 bg-white border border-slate-300 rounded-xl">
+            <option value="Accountant">Accountant (Invoices & Receipts)</option>
+            <option value="Administrator">Administrator (Full ERP Control)</option>
+            <option value="Staff">Admissions Staff (Candidate Viewing)</option>
+          </select>
+        </div>
+
+        <div class="pt-2 flex justify-end gap-2 border-t border-slate-100">
+          <button type="button" onclick="closeAddUserModal()" class="py-2 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl">Cancel</button>
+          <button type="submit" class="py-2 px-5 bg-[#005696] hover:bg-[#004375] text-white font-bold rounded-xl shadow">Create User</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 max-w-sm pointer-events-none"></div>
+
+  <!-- Application Scripts -->
+  <script src="js/students-data.js"></script>
+  <script src="js/books-data.js"></script>
+  <script src="js/books-master.js"></script>
+  <script src="js/books-settings.js"></script>
+  <script src="js/books-invoices.js"></script>
+  <script src="js/books-expenses.js"></script>
+  <script src="js/books-reports.js"></script>
+  <script src="js/payment.js"></script>
+  <script src="js/admin.js"></script>
+  <script src="js/app.js"></script>
+
+</body>
+</html>
