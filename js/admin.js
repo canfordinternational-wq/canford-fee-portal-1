@@ -15,10 +15,15 @@ function updateAdminKPIs() {
   const totalStudents = students.length;
   const overdueCount = students.filter(s => s.feeStatus === "Overdue" || (s.nextDueDate && new Date(s.nextDueDate) < new Date() && s.balanceFee > 0)).length;
 
-  document.getElementById("kpi-total-collected").textContent = `₹${totalRevenue.toLocaleString('en-IN')}`;
-  document.getElementById("kpi-total-pending").textContent = `₹${totalPending.toLocaleString('en-IN')}`;
-  document.getElementById("kpi-total-students").textContent = totalStudents;
-  document.getElementById("kpi-overdue-count").textContent = overdueCount;
+  const collectedEl = document.getElementById("kpi-total-collected");
+  const pendingEl = document.getElementById("kpi-total-pending");
+  const studentsEl = document.getElementById("kpi-total-students");
+  const overdueEl = document.getElementById("kpi-overdue-count");
+
+  if (collectedEl) collectedEl.textContent = `₹${totalRevenue.toLocaleString('en-IN')}`;
+  if (pendingEl) pendingEl.textContent = `₹${totalPending.toLocaleString('en-IN')}`;
+  if (studentsEl) studentsEl.textContent = totalStudents;
+  if (overdueEl) overdueEl.textContent = overdueCount;
 }
 
 // Render Admin Student Table
