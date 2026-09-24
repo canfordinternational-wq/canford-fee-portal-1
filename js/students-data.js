@@ -566,13 +566,19 @@ const StudentStore = {
   getAll() {
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) {
+      if (stored !== null) {
         const parsed = JSON.parse(stored);
-        // If an empty list was previously saved, restore the bundled student records.
-        // This fixes the blank Student List after a prior empty/local reset.
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          return parsed;
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+
+        // One-time recovery for older portal versions that saved an empty list.
+        // This restores the bundled records without overwriting a populated list.
+        const recovered = localStorage.getItem(`${STORAGE_KEY}_recovered_v1`);
+        if (!recovered && Array.isArray(INITIAL_STUDENTS) && INITIAL_STUDENTS.length > 0) {
+          this.saveAll(INITIAL_STUDENTS);
+          localStorage.setItem(`${STORAGE_KEY}_recovered_v1`, '1');
+          return INITIAL_STUDENTS;
         }
+        return Array.isArray(parsed) ? parsed : [];
       }
     } catch (e) {
       console.error("Failed to parse stored students", e);
