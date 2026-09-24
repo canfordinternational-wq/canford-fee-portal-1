@@ -71,6 +71,9 @@ function initZohoApp() {
   // Load Dashboard
   refreshZohoDashboard();
 
+  // Render the student directory on initial load so the list is never blank.
+  if (typeof refreshAdminTable === 'function') refreshAdminTable();
+
   // Initialize public student portal if loaded
   if (typeof initApp === 'function') {
     // legacy support

@@ -567,7 +567,12 @@ const StudentStore = {
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
-        return JSON.parse(stored);
+        const parsed = JSON.parse(stored);
+        // If an empty list was previously saved, restore the bundled student records.
+        // This fixes the blank Student List after a prior empty/local reset.
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed;
+        }
       }
     } catch (e) {
       console.error("Failed to parse stored students", e);
