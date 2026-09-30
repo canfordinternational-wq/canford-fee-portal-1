@@ -114,12 +114,17 @@ function renderInvoiceDetail(invId) {
   const qrUrl = (org.bank && org.bank.qrUrl) ? org.bank.qrUrl : `https://api.qrserver.com/v1/create-qr-code/?size=110x110&data=${encodeURIComponent(upiUrl)}`;
 
   // Digital Sign HTML (Req 6)
-  let signHtml = `<div class="w-36 ml-auto border-b border-slate-400 mb-1"></div>`;
+  // Keep the signature visually close to the authorized officer name/designation.
+  let signHtml = `<div class="w-36 ml-auto h-8"></div>`;
   if (org.digitalSign && org.digitalSign.enabled) {
     if (org.digitalSign.image) {
-      signHtml = `<img src="${org.digitalSign.image}" alt="Digital Sign" style="width:${Number(org.digitalSign.width || 180)}px;height:${Number(org.digitalSign.height || 60)}px;object-fit:contain;display:block;margin-left:auto;margin-bottom:4px"><div class="w-36 ml-auto border-b border-slate-400 mb-1"></div>`;
+      const signWidth = Math.max(40, Number(org.digitalSign.width || 180));
+      const signHeight = Math.max(20, Number(org.digitalSign.height || 60));
+      signHtml = `<div style="display:flex;flex-direction:column;align-items:flex-end;line-height:1;margin:0;padding:0;">
+        <img src="${org.digitalSign.image}" alt="Digital Sign" style="width:${signWidth}px;height:${signHeight}px;object-fit:contain;display:block;margin:0 0 -7px auto;padding:0;">
+      </div>`;
     } else {
-      signHtml = `<div class="font-serif italic font-bold text-sm text-[#005696] mb-1 text-right">${org.digitalSign.name || 'Authorized Signatory'}</div><div class="w-36 ml-auto border-b border-slate-400 mb-1"></div>`;
+      signHtml = `<div style="font-family:serif;font-style:italic;font-weight:700;font-size:14px;color:#005696;text-align:right;line-height:1;margin:0 0 1px 0;">${org.digitalSign.name || 'Authorized Signatory'}</div>`;
     }
   }
 
@@ -312,10 +317,10 @@ function renderInvoiceDetail(invId) {
             </div>
           </div>
 
-          <div class="text-right">
+          <div class="text-right" style="line-height:1.15;display:flex;flex-direction:column;align-items:flex-end;justify-content:flex-end;padding:0;margin:0;">
             ${signHtml}
-            <p class="font-bold text-slate-900 text-xs">${org.digitalSign?.name || 'Authorized Signatory'}</p>
-            <p class="text-[10px] text-slate-500 uppercase">${org.digitalSign?.designation || org.name}</p>
+            <p class="font-bold text-slate-900 text-xs" style="margin:0;padding:0;line-height:1.15;">${org.digitalSign?.name || 'Authorized Signatory'}</p>
+            <p class="text-[10px] text-slate-500 uppercase" style="margin:2px 0 0 0;padding:0;line-height:1.1;">${org.digitalSign?.designation || org.name}</p>
           </div>
         </div>
 
