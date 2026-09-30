@@ -542,19 +542,23 @@
             <p class="text-xs text-slate-500">Standard accounting statements for Canford International</p>
           </div>
           <div class="flex items-center gap-2">
-            <button id="rep-tab-pnl" onclick="switchReportTab('pnl')" class="px-4 py-2 border-b-2 border-[#005696] font-bold text-xs text-[#005696]">
-              Profit & Loss
-            </button>
-            <button id="rep-tab-aging" onclick="switchReportTab('aging')" class="px-4 py-2 text-slate-500 hover:text-slate-800 font-semibold text-xs">
-              Receivables Aging
-            </button>
-            <button id="rep-tab-defaulters" onclick="switchReportTab('defaulters')" class="px-4 py-2 text-slate-500 hover:text-slate-800 font-semibold text-xs">
-              Defaulters Alert
-            </button>
+            <div class="flex flex-wrap items-center gap-1">
+              <button id="rep-tab-pnl" onclick="switchReportTab('pnl')" class="px-4 py-2 border-b-2 border-[#005696] font-bold text-xs text-[#005696]">Profit & Loss</button>
+              <button id="rep-tab-balance" onclick="switchReportTab('balance')" class="px-4 py-2 text-slate-500 hover:text-slate-800 font-semibold text-xs">Balance Sheet</button>
+              <button id="rep-tab-trial" onclick="switchReportTab('trial')" class="px-4 py-2 text-slate-500 hover:text-slate-800 font-semibold text-xs">Trial Balance</button>
+              <button id="rep-tab-cashflow" onclick="switchReportTab('cashflow')" class="px-4 py-2 text-slate-500 hover:text-slate-800 font-semibold text-xs">Cash Flow</button>
+              <button id="rep-tab-ledger" onclick="switchReportTab('ledger')" class="px-4 py-2 text-slate-500 hover:text-slate-800 font-semibold text-xs">General Ledger</button>
+              <button id="rep-tab-aging" onclick="switchReportTab('aging')" class="px-4 py-2 text-slate-500 hover:text-slate-800 font-semibold text-xs">Receivables Aging</button>
+              <button id="rep-tab-defaulters" onclick="switchReportTab('defaulters')" class="px-4 py-2 text-slate-500 hover:text-slate-800 font-semibold text-xs">Defaulters Alert</button>
+            </div>
           </div>
         </div>
 
         <div id="rep-view-pnl"></div>
+        <div id="rep-view-balance" class="hidden"></div>
+        <div id="rep-view-trial" class="hidden"></div>
+        <div id="rep-view-cashflow" class="hidden"></div>
+        <div id="rep-view-ledger" class="hidden"></div>
         <div id="rep-view-aging" class="hidden"></div>
         <div id="rep-view-defaulters" class="hidden"></div>
       </section>

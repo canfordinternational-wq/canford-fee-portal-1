@@ -1,4 +1,4 @@
-const CACHE_NAME = 'canford-fee-portal-v3';
+const CACHE_NAME = 'canford-fee-portal-v4';
 const ASSETS = [
   '/',
   '/index.html',
