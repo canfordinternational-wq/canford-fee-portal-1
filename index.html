@@ -118,6 +118,10 @@
         <i class="fas fa-receipt w-4 text-center"></i>
         <span>Operating Expenses</span>
       </button>
+      <button id="side-nav-income" onclick="switchModule('income')" class="w-full flex items-center gap-3 px-3 py-2 rounded-xl transition hover:bg-white/10 hover:text-white">
+        <i class="fas fa-arrow-circle-down w-4 text-center text-emerald-300"></i>
+        <span>Other Income / Capital</span>
+      </button>
 
       <button id="side-nav-reports" onclick="switchModule('reports')" class="w-full flex items-center gap-3 px-3 py-2 rounded-xl transition hover:bg-white/10 hover:text-white">
         <i class="fas fa-file-signature w-4 text-center"></i>
@@ -322,7 +326,7 @@
             <p class="text-xs text-slate-500">Manage enrolled candidate records, fee balances, and contact details</p>
           </div>
           <button onclick="openAddStudentModal()" class="px-4 py-2 bg-[#005696] hover:bg-[#004375] text-white font-bold text-xs rounded-xl shadow transition flex items-center gap-2">
-            <i class="fas fa-user-plus"></i> + Add New Student
+            <i class="fas fa-file-signature"></i> + New Admission Form
           </button>
         </div>
 
@@ -502,6 +506,29 @@
               </tbody>
             </table>
           </div>
+        </div>
+      </section>
+
+      <!-- ===================================================================== -->
+      <!-- MODULE 5B: OTHER INCOME & CAPITAL -->
+      <!-- ===================================================================== -->
+      <section id="books-view-income" class="p-6 hidden space-y-5">
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div>
+            <h2 class="text-xl font-black font-display text-slate-900">Other Income & Capital</h2>
+            <p class="text-xs text-slate-500">Record indirect income separately from capital introduced.</p>
+          </div>
+          <div class="flex gap-2">
+            <button onclick="openAddIncomeModal('income')" class="px-3.5 py-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-bold shadow">
+              <i class="fas fa-plus mr-1"></i> Add Other Income
+            </button>
+            <button onclick="openAddIncomeModal('capital')" class="px-3.5 py-2 bg-[#005696] hover:bg-[#004375] text-white rounded-xl text-xs font-bold shadow">
+              <i class="fas fa-landmark mr-1"></i> Capital Introduced
+            </button>
+          </div>
+        </div>
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          <div id="books-income-list" class="divide-y divide-slate-100"></div>
         </div>
       </section>
 
@@ -853,6 +880,17 @@
                 </div>
               </div>
 
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <label class="block font-semibold text-slate-700 mb-1">Signature Width (px)</label>
+                  <input type="number" id="set-sign-width" min="40" max="600" value="180" oninput="updateSignaturePreviewSize()" class="w-full p-2 bg-white border border-slate-300 rounded-xl">
+                </div>
+                <div>
+                  <label class="block font-semibold text-slate-700 mb-1">Signature Height (px)</label>
+                  <input type="number" id="set-sign-height" min="20" max="250" value="60" oninput="updateSignaturePreviewSize()" class="w-full p-2 bg-white border border-slate-300 rounded-xl">
+                </div>
+              </div>
+
               <div>
                 <label class="block font-semibold text-slate-700 mb-1">Upload Signature Stamp / Image (PNG / JPG)</label>
                 <input type="file" id="set-sign-file" accept="image/*" onchange="handleSignatureFileUpload(event)" class="w-full p-2 bg-slate-50 border border-slate-300 rounded-xl text-xs file:mr-3 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-[#005696] file:text-white hover:file:bg-[#004375]">
@@ -1042,7 +1080,7 @@
       <form onsubmit="submitNewInvoice(event)" class="p-5 space-y-3">
         <div>
           <label class="block font-semibold text-slate-700 mb-1">Select Candidate / Student *</label>
-          <select id="new-inv-student" required class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:outline-none"></select>
+          <select id="new-inv-student" required onchange="syncInvoiceToMasterFee()" class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:outline-none"></select>
         </div>
 
         <div class="grid grid-cols-2 gap-3">
@@ -1065,6 +1103,7 @@
           <div>
             <label class="block font-semibold text-slate-700 mb-1">Fee Rate (₹) *</label>
             <input type="number" id="new-inv-item-rate" required min="100" value="25000" class="w-full p-2 bg-white border border-slate-300 rounded-xl font-bold font-mono">
+            <p class="text-[10px] text-slate-400 mt-1">Defaults to the current Master Setup standard fee.</p>
           </div>
           <div>
             <label class="block font-semibold text-slate-700 mb-1">Discount / Scholarship (₹)</label>
@@ -1213,6 +1252,58 @@
     </div>
   </div>
 
+  <!-- MODAL: OTHER INCOME / CAPITAL -->
+  <div id="add-income-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 glass-overlay">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden border border-slate-200">
+      <div class="bg-[#005696] text-white p-4 flex justify-between items-center">
+        <div>
+          <span class="text-[10px] uppercase tracking-wider text-amber-300 font-bold">Accounts Entry</span>
+          <h3 class="text-sm font-bold">Other Income / Capital Entry</h3>
+        </div>
+        <button onclick="closeAddIncomeModal()" class="text-white/70 hover:text-white"><i class="fas fa-times"></i></button>
+      </div>
+      <form onsubmit="submitNewIncome(event)" class="p-5 space-y-3 text-xs">
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Entry Type *</label>
+            <select id="new-income-type" onchange="updateIncomeFormLabels()" required class="w-full p-2.5 bg-white border border-slate-300 rounded-xl">
+              <option value="income">Indirect / Other Income</option>
+              <option value="capital">Capital Introduced</option>
+            </select>
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Date *</label>
+            <input type="date" id="new-income-date" required class="w-full p-2.5 bg-white border border-slate-300 rounded-xl">
+          </div>
+        </div>
+        <div>
+          <label id="new-income-category-label" class="block font-semibold text-slate-700 mb-1">Income Category</label>
+          <select id="new-income-category" class="w-full p-2.5 bg-white border border-slate-300 rounded-xl"></select>
+        </div>
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Particulars *</label>
+          <input type="text" id="new-income-particulars" required placeholder="e.g. Commission received / Owner capital" class="w-full p-2.5 bg-white border border-slate-300 rounded-xl">
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Amount (₹) *</label>
+            <input type="number" id="new-income-amount" min="0.01" step="0.01" required class="w-full p-2.5 bg-white border border-slate-300 rounded-xl font-mono font-bold">
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Received Through</label>
+            <select id="new-income-mode" class="w-full p-2.5 bg-white border border-slate-300 rounded-xl"></select>
+          </div>
+        </div>
+        <input type="text" id="new-income-ref" placeholder="Reference / UTR / Voucher No." class="w-full p-2.5 bg-white border border-slate-300 rounded-xl">
+        <textarea id="new-income-notes" rows="2" placeholder="Notes / remarks" class="w-full p-2.5 bg-white border border-slate-300 rounded-xl"></textarea>
+        <div class="flex justify-end gap-2 pt-2 border-t border-slate-100">
+          <button type="button" onclick="closeAddIncomeModal()" class="py-2 px-4 bg-slate-100 rounded-xl font-semibold">Cancel</button>
+          <button type="submit" class="py-2 px-5 bg-[#005696] text-white rounded-xl font-bold">Save Entry</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- MODAL 4: MANUAL STUDENT PAYMENT MODAL -->
   <div id="manual-collect-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 glass-overlay">
     <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden border border-slate-200">
@@ -1283,7 +1374,7 @@
       <div class="bg-gradient-to-r from-[#005696] to-[#072a4a] text-white p-5 flex justify-between items-center">
         <div>
           <span class="text-[11px] font-bold text-[#C5A059] uppercase tracking-wider">Candidate Master</span>
-          <h3 class="text-lg font-black font-display">Enroll New Student</h3>
+          <h3 class="text-lg font-black font-display">Student Admission Form</h3>
         </div>
         <button onclick="closeAddStudentModal()" class="text-white/70 hover:text-white"><i class="fas fa-times"></i></button>
       </div>
@@ -1317,6 +1408,17 @@
           </div>
         </div>
 
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Date of Birth *</label>
+            <input type="date" id="new-student-dob" required class="w-full p-2.5 bg-white border border-slate-300 rounded-xl">
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Full Address *</label>
+            <textarea id="new-student-address" required rows="2" placeholder="House name, street, city, district, PIN" class="w-full p-2.5 bg-white border border-slate-300 rounded-xl"></textarea>
+          </div>
+        </div>
+
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div>
             <label class="block font-semibold text-slate-700 mb-1">Place / City</label>
@@ -1329,6 +1431,21 @@
           <div>
             <label class="block font-semibold text-slate-700 mb-1">Batch</label>
             <input type="text" id="new-student-batch" value="Regular Batch 2025" class="w-full p-2.5 bg-white border border-slate-300 rounded-xl">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 border-t border-slate-200 pt-3">
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Guardian Name *</label>
+            <input type="text" id="new-student-guardian-name" required placeholder="Parent / Guardian name" class="w-full p-2.5 bg-white border border-slate-300 rounded-xl">
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Guardian Phone *</label>
+            <input type="tel" id="new-student-guardian-phone" required placeholder="10 digit number" class="w-full p-2.5 bg-white border border-slate-300 rounded-xl">
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Relationship</label>
+            <input type="text" id="new-student-guardian-relation" placeholder="Father / Mother / Guardian" class="w-full p-2.5 bg-white border border-slate-300 rounded-xl">
           </div>
         </div>
 

@@ -117,7 +117,7 @@ function renderInvoiceDetail(invId) {
   let signHtml = `<div class="w-36 ml-auto border-b border-slate-400 mb-1"></div>`;
   if (org.digitalSign && org.digitalSign.enabled) {
     if (org.digitalSign.image) {
-      signHtml = `<img src="${org.digitalSign.image}" alt="Digital Sign" class="h-10 ml-auto object-contain mb-1"><div class="w-36 ml-auto border-b border-slate-400 mb-1"></div>`;
+      signHtml = `<img src="${org.digitalSign.image}" alt="Digital Sign" style="width:${Number(org.digitalSign.width || 180)}px;height:${Number(org.digitalSign.height || 60)}px;object-fit:contain;display:block;margin-left:auto;margin-bottom:4px"><div class="w-36 ml-auto border-b border-slate-400 mb-1"></div>`;
     } else {
       signHtml = `<div class="font-serif italic font-bold text-sm text-[#005696] mb-1 text-right">${org.digitalSign.name || 'Authorized Signatory'}</div><div class="w-36 ml-auto border-b border-slate-400 mb-1"></div>`;
     }

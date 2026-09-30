@@ -274,7 +274,10 @@ function viewStudentProfile(studentId) {
         <p class="text-xs text-slate-500 mt-1">${student.courseName} • ${student.batch || 'Regular 2025'}</p>
       </div>
       <div class="text-right">
-        <span class="text-xs text-slate-400">Status</span>
+        <button onclick="printAdmissionForm('${student.id}')" class="no-print mb-2 px-3 py-1.5 bg-[#005696] text-white rounded-lg font-bold text-[10px]">
+          <i class="fas fa-print mr-1"></i> Print Admission Form
+        </button>
+        <span class="text-xs text-slate-400 block">Status</span>
         <div class="font-bold text-emerald-700 text-sm">${student.status}</div>
       </div>
     </div>
@@ -538,4 +541,58 @@ function handleResetDemoData() {
     refreshAdminTable();
     showToast("Data reset to official Canford records.", "info");
   }
+}
+
+
+function printAdmissionForm(studentId) {
+  const student = StudentStore.getById(studentId);
+  if (!student) return;
+  const org = typeof BooksStore !== "undefined" ? BooksStore.getOrg() : {};
+  const esc = value => String(value ?? "").replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[ch]));
+  const win = window.open("", "_blank", "width=900,height=1100");
+  if (!win) {
+    showToast("Please allow pop-ups to print the admission form.", "error");
+    return;
+  }
+  win.document.write(`<!doctype html><html><head><title>Admission Form - ${esc(student.name)}</title>
+    <style>
+      body{font-family:Arial,sans-serif;margin:0;padding:36px;color:#172033}
+      .header{text-align:center;border-bottom:2px solid #005696;padding-bottom:14px;margin-bottom:20px}
+      h1{margin:0;font-size:24px;color:#005696}.sub{font-size:12px;color:#64748b;margin-top:4px}
+      h2{font-size:15px;border-bottom:1px solid #cbd5e1;padding-bottom:6px;margin-top:22px}
+      table{width:100%;border-collapse:collapse;font-size:12px}td{border:1px solid #cbd5e1;padding:9px}td:first-child{width:28%;font-weight:bold;background:#f8fafc}
+      .fee{margin-top:18px;padding:12px;background:#f8fafc;border:1px solid #cbd5e1}
+      .sign{margin-top:60px;display:flex;justify-content:space-between;font-size:12px}.line{border-top:1px solid #334155;width:220px;padding-top:6px;text-align:center}
+      @media print{body{padding:20px}}
+    </style></head><body>
+    <div class="header"><h1>${esc(org.name || "Canford International")}</h1>
+      <div class="sub">${esc(org.tagline || "")}</div>
+      <div class="sub">${esc(org.address?.line1 || "")}, ${esc(org.address?.city || "")}, ${esc(org.address?.state || "")} - ${esc(org.address?.pincode || "")}</div>
+      <h2>STUDENT ADMISSION FORM</h2></div>
+    <table>
+      <tr><td>Student ID</td><td>${esc(student.id)}</td></tr>
+      <tr><td>Full Name</td><td>${esc(student.name)}</td></tr>
+      <tr><td>Date of Birth</td><td>${esc(student.dob || "—")}</td></tr>
+      <tr><td>Phone</td><td>${esc(student.phone || "—")}</td></tr>
+      <tr><td>Email</td><td>${esc(student.email || "—")}</td></tr>
+      <tr><td>Full Address</td><td>${esc(student.address || "—")}</td></tr>
+      <tr><td>Place / City</td><td>${esc(student.place || "—")}</td></tr>
+      <tr><td>Qualification</td><td>${esc(student.qualification || "—")}</td></tr>
+      <tr><td>Guardian Name</td><td>${esc(student.guardianName || "—")}</td></tr>
+      <tr><td>Guardian Phone</td><td>${esc(student.guardianPhone || "—")}</td></tr>
+      <tr><td>Relationship</td><td>${esc(student.guardianRelation || "—")}</td></tr>
+      <tr><td>Course / Program</td><td>${esc(student.courseName)}</td></tr>
+      <tr><td>Batch</td><td>${esc(student.batch || "—")}</td></tr>
+      <tr><td>Admission Date</td><td>${esc(student.admissionDate || "—")}</td></tr>
+    </table>
+    <div class="fee"><strong>Course Fee:</strong> ₹${Number(student.totalFee || 0).toLocaleString("en-IN")}
+      &nbsp;&nbsp; <strong>Paid:</strong> ₹${Number(student.paidFee || 0).toLocaleString("en-IN")}
+      &nbsp;&nbsp; <strong>Balance:</strong> ₹${Number(student.balanceFee || 0).toLocaleString("en-IN")}</div>
+    <h2>Declaration</h2>
+    <p style="font-size:12px;line-height:1.6">I confirm that the information provided above is correct and that I agree to the applicable admission and fee terms of the institution.</p>
+    <div class="sign"><div class="line">Student / Applicant Signature</div><div class="line">Parent / Guardian Signature</div></div>
+    <div class="sign"><div></div><div class="line">Authorized Officer</div></div>
+    <script>window.onload=()=>setTimeout(()=>window.print(),250)<\/script>
+    </body></html>`);
+  win.document.close();
 }

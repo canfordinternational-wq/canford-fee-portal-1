@@ -23,6 +23,7 @@ function closeAllModals() {
     'edit-invoice-modal',
     'invoice-payment-modal',
     'add-expense-modal',
+    'add-income-modal',
     'manual-collect-modal',
     'add-student-modal',
     'student-profile-modal',
@@ -84,7 +85,7 @@ function initZohoApp() {
 function switchModule(moduleName) {
   currentActiveModule = moduleName;
 
-  const modules = ['dashboard', 'students', 'invoices', 'payments', 'expenses', 'reports', 'master', 'settings', 'publicpay'];
+  const modules = ['dashboard', 'students', 'invoices', 'payments', 'expenses', 'income', 'reports', 'master', 'settings', 'publicpay'];
   modules.forEach(m => {
     const view = document.getElementById(`books-view-${m}`);
     const navItem = document.getElementById(`side-nav-${m}`);
@@ -104,6 +105,7 @@ function switchModule(moduleName) {
   if (moduleName === 'dashboard') refreshZohoDashboard();
   else if (moduleName === 'invoices') renderInvoicesList();
   else if (moduleName === 'expenses') renderExpensesList();
+  else if (moduleName === 'income') renderIncomeList();
   else if (moduleName === 'payments') renderPaymentsList();
   else if (moduleName === 'reports') initReportsModule();
   else if (moduleName === 'master') {
@@ -142,7 +144,7 @@ function refreshZohoDashboard() {
 
   // Cash Flow / Profit
   const incomeEl = document.getElementById("dash-total-income");
-  if (incomeEl) incomeEl.textContent = `₹${metrics.totalCollected.toLocaleString('en-IN')}`;
+  if (incomeEl) incomeEl.textContent = `₹${metrics.totalIncome.toLocaleString('en-IN')}`;
 
   const expenseEl = document.getElementById("dash-total-expenses");
   if (expenseEl) expenseEl.textContent = `₹${metrics.totalExpenses.toLocaleString('en-IN')}`;
@@ -304,8 +306,24 @@ function openNewInvoiceModal() {
     dueInput.value = d.toISOString().split("T")[0];
   }
 
+  syncInvoiceToMasterFee();
+
   modal.classList.remove("hidden");
   modal.classList.add("flex");
+}
+
+function syncInvoiceToMasterFee() {
+  const studentSelect = document.getElementById("new-inv-student");
+  const opt = studentSelect?.selectedOptions?.[0];
+  if (!opt) return;
+  const student = BooksStore.getStudents().find(x => x.id === studentSelect.value);
+  const course = student ? BooksStore.getCourses().find(c => c.id === student.courseId) : null;
+  const rateInput = document.getElementById("new-inv-item-rate");
+  const itemInput = document.getElementById("new-inv-item-name");
+  if (course) {
+    if (rateInput) rateInput.value = Number(course.totalFee) || 0;
+    if (itemInput) itemInput.value = `${course.title} - Standard Fee`;
+  }
 }
 
 function closeNewInvoiceModal() {
@@ -355,4 +373,99 @@ function submitNewInvoice(event) {
   } catch (err) {
     showToast(err.message, "error");
   }
+}
+
+
+// Other Income / Capital Introduced
+function openAddIncomeModal(type = "income") {
+  const modal = document.getElementById("add-income-modal");
+  if (!modal) return;
+  const typeSelect = document.getElementById("new-income-type");
+  if (typeSelect) typeSelect.value = type;
+  updateIncomeFormLabels();
+  const mode = document.getElementById("new-income-mode");
+  if (mode) mode.innerHTML = BooksStore.getPaymentModes().map(m => `<option value="${m}">${m}</option>`).join("");
+  const date = document.getElementById("new-income-date");
+  if (date) date.value = new Date().toISOString().split("T")[0];
+  modal.classList.remove("hidden");
+  modal.classList.add("flex");
+}
+
+function closeAddIncomeModal() {
+  const modal = document.getElementById("add-income-modal");
+  if (!modal) return;
+  modal.classList.add("hidden");
+  modal.classList.remove("flex");
+}
+
+function updateIncomeFormLabels() {
+  const type = document.getElementById("new-income-type")?.value || "income";
+  const cat = document.getElementById("new-income-category");
+  const label = document.getElementById("new-income-category-label");
+  if (type === "capital") {
+    if (label) label.textContent = "Account / Source";
+    if (cat) cat.innerHTML = '<option value="Capital Introduced">Capital Introduced</option>';
+  } else {
+    if (label) label.textContent = "Income Category";
+    if (cat) cat.innerHTML = BooksStore.getIncomeCategories().map(x => `<option value="${x}">${x}</option>`).join("");
+  }
+}
+
+function submitNewIncome(event) {
+  event.preventDefault();
+  try {
+    const type = document.getElementById("new-income-type").value;
+    const entry = BooksStore.addIncome({
+      type,
+      date: document.getElementById("new-income-date").value,
+      category: document.getElementById("new-income-category").value,
+      particulars: document.getElementById("new-income-particulars").value.trim(),
+      amount: Number(document.getElementById("new-income-amount").value),
+      receivedThrough: document.getElementById("new-income-mode").value,
+      reference: document.getElementById("new-income-ref").value.trim(),
+      notes: document.getElementById("new-income-notes").value.trim()
+    });
+    closeAddIncomeModal();
+    if (typeof renderIncomeList === "function") renderIncomeList();
+    refreshZohoDashboard();
+    if (typeof initReportsModule === "function") initReportsModule();
+    showToast(`${entry.category} of ₹${entry.amount.toLocaleString("en-IN")} recorded.`, "success");
+  } catch (err) {
+    showToast(err.message, "error");
+  }
+}
+
+
+function renderIncomeList() {
+  const container = document.getElementById("books-income-list");
+  if (!container || typeof BooksStore === "undefined") return;
+  const entries = BooksStore.getIncomes();
+  if (!entries.length) {
+    container.innerHTML = '<div class="p-8 text-center text-slate-400 text-xs">No other income or capital entries recorded.</div>';
+    return;
+  }
+  container.innerHTML = entries.map(e => `
+    <div class="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+      <div>
+        <div class="flex items-center gap-2">
+          <span class="font-bold text-slate-900">${e.particulars}</span>
+          <span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${e.type === "capital" ? "bg-blue-100 text-blue-800" : "bg-emerald-100 text-emerald-800"}">${e.type === "capital" ? "Capital" : "Other Income"}</span>
+        </div>
+        <div class="text-[10px] text-slate-400 mt-1">${e.date} • ${e.category} • ${e.receivedThrough || ""} ${e.reference ? "• " + e.reference : ""}</div>
+      </div>
+      <div class="flex items-center gap-4">
+        <span class="font-black font-mono text-sm ${e.type === "capital" ? "text-blue-700" : "text-emerald-700"}">₹${Number(e.amount).toLocaleString("en-IN")}</span>
+        <button onclick="deleteIncomeEntry('${e.id}')" class="p-1.5 bg-rose-50 text-rose-700 rounded-lg" title="Delete entry"><i class="fas fa-trash-alt"></i></button>
+      </div>
+    </div>
+  `).join("");
+}
+
+function deleteIncomeEntry(id) {
+  if (!confirm("Delete this financial entry?")) return;
+  BooksStore.deleteIncome(id);
+  renderIncomeList();
+  refreshZohoDashboard();
+  if (typeof initReportsModule === "function") initReportsModule();
+  showToast("Financial entry deleted.", "info");
 }

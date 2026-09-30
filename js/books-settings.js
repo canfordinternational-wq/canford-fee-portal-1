@@ -56,10 +56,12 @@ function loadOrgSettingsForm() {
   document.getElementById("set-sign-enabled").checked = sign.enabled !== false;
   document.getElementById("set-sign-name").value = sign.name || "Authorized Accounts Officer";
   document.getElementById("set-sign-title").value = sign.designation || "Head of Finance & Admissions";
+  document.getElementById("set-sign-width").value = sign.width || 180;
+  document.getElementById("set-sign-height").value = sign.height || 60;
 
   const preview = document.getElementById("set-sign-preview");
   if (sign.image) {
-    preview.innerHTML = `<img src="${sign.image}" alt="Digital Signature" class="h-12 object-contain">`;
+    preview.innerHTML = `<img src="${sign.image}" alt="Digital Signature" style="width:${Number(sign.width || 180)}px;height:${Number(sign.height || 60)}px;object-fit:contain">`;
   } else {
     preview.innerHTML = `<span class="italic text-base font-serif text-slate-800">${sign.name || 'Authorized Signatory'}</span>`;
   }
@@ -95,6 +97,8 @@ function saveOrgProfile(event) {
       enabled: document.getElementById("set-sign-enabled").checked,
       name: document.getElementById("set-sign-name").value.trim(),
       designation: document.getElementById("set-sign-title").value.trim(),
+      width: Number(document.getElementById("set-sign-width").value) || 180,
+      height: Number(document.getElementById("set-sign-height").value) || 60,
       image: sign.image || ""
     }
   });
@@ -117,7 +121,9 @@ function handleSignatureFileUpload(event) {
     org.digitalSign.image = dataUrl;
     BooksStore.updateOrg({ digitalSign: org.digitalSign });
 
-    document.getElementById("set-sign-preview").innerHTML = `<img src="${dataUrl}" alt="Signature" class="h-12 object-contain">`;
+    const width = Number(document.getElementById("set-sign-width")?.value) || 180;
+    const height = Number(document.getElementById("set-sign-height")?.value) || 60;
+    document.getElementById("set-sign-preview").innerHTML = `<img src="${dataUrl}" alt="Signature" style="width:${width}px;height:${height}px;object-fit:contain">`;
     showToast("Digital signature image uploaded successfully!", "success");
   };
   reader.readAsDataURL(file);
@@ -311,4 +317,13 @@ function resetWhatsAppTemplateDefault() {
     BooksStore.updateWhatsAppTemplate(DEFAULT_WHATSAPP_TEMPLATE);
     showToast("Template reset to default", "info");
   }
+}
+
+function updateSignaturePreviewSize() {
+  const img = document.querySelector("#set-sign-preview img");
+  if (!img) return;
+  const width = Number(document.getElementById("set-sign-width")?.value) || 180;
+  const height = Number(document.getElementById("set-sign-height")?.value) || 60;
+  img.style.width = `${width}px`;
+  img.style.height = `${height}px`;
 }

@@ -35,10 +35,14 @@ function renderPnLReport() {
 
   const payments = BooksStore.getPayments();
   const expenses = BooksStore.getExpenses();
+  const otherIncome = BooksStore.getIncomes().filter(x => x.type !== "capital");
 
   const totalRevenue = payments.reduce((s, p) => s + Number(p.amount), 0);
+  const totalOtherIncome = otherIncome.reduce((s, x) => s + Number(x.amount), 0);
   const totalExpenses = expenses.reduce((s, e) => s + Number(e.amount), 0);
-  const netProfit = totalRevenue - totalExpenses;
+  const netProfit = totalRevenue + totalOtherIncome - totalExpenses;
+  const capitalIntroduced = BooksStore.getIncomes().filter(x => x.type === "capital")
+    .reduce((s, x) => s + Number(x.amount), 0);
 
   // Group expenses by category
   const catMap = {};
@@ -64,9 +68,13 @@ function renderPnLReport() {
             <span>Tuition & Course Fee Collections Received</span>
             <span class="font-mono font-semibold">₹${totalRevenue.toLocaleString('en-IN')}</span>
           </div>
+          <div class="flex justify-between text-slate-700">
+            <span>Indirect / Other Income</span>
+            <span class="font-mono font-semibold">₹${totalOtherIncome.toLocaleString('en-IN')}</span>
+          </div>
           <div class="flex justify-between border-t border-slate-200 pt-2 font-bold text-slate-900">
-            <span>Total Operating Income (A)</span>
-            <span class="text-emerald-700 font-mono text-sm">₹${totalRevenue.toLocaleString('en-IN')}</span>
+            <span>Total Income (A)</span>
+            <span class="text-emerald-700 font-mono text-sm">₹${(totalRevenue + totalOtherIncome).toLocaleString('en-IN')}</span>
           </div>
         </div>
       </div>
@@ -89,6 +97,12 @@ function renderPnLReport() {
             <span class="text-rose-700 font-mono text-sm">₹${totalExpenses.toLocaleString('en-IN')}</span>
           </div>
         </div>
+      </div>
+
+      <!-- Capital Introduced (not part of profit) -->
+      <div class="mb-6 p-3 rounded-xl bg-blue-50 border border-blue-200 flex justify-between items-center">
+        <span class="font-bold text-blue-900">Capital Introduced (Equity / Funding)</span>
+        <span class="font-mono font-black text-blue-800">₹${capitalIntroduced.toLocaleString('en-IN')}</span>
       </div>
 
       <!-- Net Surplus / Profit -->

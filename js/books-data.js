@@ -71,6 +71,14 @@ const DEFAULT_EXPENSE_CATEGORIES = [
   "Office Administration"
 ];
 
+const DEFAULT_INCOME_CATEGORIES = [
+  "Indirect Income",
+  "Commission Income",
+  "Miscellaneous Income",
+  "Interest Income",
+  "Other Operating Income"
+];
+
 const DEFAULT_PAYMENT_MODES = [
   "Bank Transfer (NEFT/RTGS)",
   "UPI / PhonePe / GPay",
@@ -145,6 +153,8 @@ const CANFORD_ORG = {
     type: "typed", // 'typed' or 'image'
     name: "Authorized Accounts Officer",
     designation: "Head of Finance & Admissions",
+    width: 180,
+    height: 60,
     image: ""
   },
   whatsappTemplate: DEFAULT_WHATSAPP_TEMPLATE,
@@ -599,6 +609,8 @@ const BooksStore = {
     this.data.courses = this.data.courses || DEFAULT_COURSES_LIST;
     this.data.categories = this.data.categories || DEFAULT_EXPENSE_CATEGORIES;
     this.data.paymentModes = this.data.paymentModes || DEFAULT_PAYMENT_MODES;
+    this.data.incomes = Array.isArray(this.data.incomes) ? this.data.incomes : [];
+    this.data.incomeCategories = this.data.incomeCategories || DEFAULT_INCOME_CATEGORIES;
     this.data.users = this.data.users || DEFAULT_USERS;
     this.data.students = typeof StudentStore !== 'undefined' ? StudentStore.getAll() : (this.data.students || []);
     this.data.invoices = this.data.invoices || SEED_INVOICES;
@@ -623,6 +635,8 @@ const BooksStore = {
       courses: DEFAULT_COURSES_LIST,
       categories: DEFAULT_EXPENSE_CATEGORIES,
       paymentModes: DEFAULT_PAYMENT_MODES,
+      incomeCategories: DEFAULT_INCOME_CATEGORIES,
+      incomes: [],
       users: DEFAULT_USERS,
       students: typeof StudentStore !== 'undefined' ? StudentStore.resetToDefault() : [],
       invoices: SEED_INVOICES,
@@ -641,6 +655,8 @@ const BooksStore = {
   getCourses() { return this.data.courses || DEFAULT_COURSES_LIST; },
   getCategories() { return this.data.categories || DEFAULT_EXPENSE_CATEGORIES; },
   getPaymentModes() { return this.data.paymentModes || DEFAULT_PAYMENT_MODES; },
+  getIncomeCategories() { return this.data.incomeCategories || DEFAULT_INCOME_CATEGORIES; },
+  getIncomes() { return this.data.incomes || []; },
   getUsers() { return this.data.users || DEFAULT_USERS; },
   getOrg() { return this.data.org || CANFORD_ORG; },
 
@@ -742,6 +758,35 @@ const BooksStore = {
     return this.data.paymentModes;
   },
 
+  // Other Income & Capital Introduced
+  addIncome(entry) {
+    const amount = Number(entry.amount);
+    if (!Number.isFinite(amount) || amount <= 0) throw new Error("Enter a valid positive amount.");
+    const type = entry.type === "capital" ? "capital" : "income";
+    const id = `${type === "capital" ? "CAP" : "INC"}-${new Date().getFullYear()}-${String(this.getIncomes().length + 1).padStart(3, "0")}`;
+    const newEntry = {
+      id,
+      date: entry.date || new Date().toISOString().split("T")[0],
+      type,
+      category: type === "capital" ? "Capital Introduced" : (entry.category || "Indirect Income"),
+      particulars: entry.particulars || (type === "capital" ? "Capital Introduced" : "Other Income"),
+      amount,
+      receivedThrough: entry.receivedThrough || "Bank Transfer",
+      reference: entry.reference || `REF-${Date.now().toString().slice(-6)}`,
+      notes: entry.notes || ""
+    };
+    this.data.incomes = this.data.incomes || [];
+    this.data.incomes.unshift(newEntry);
+    this.save();
+    return newEntry;
+  },
+
+  deleteIncome(id) {
+    this.data.incomes = this.getIncomes().filter(x => x.id !== id);
+    this.save();
+    return this.data.incomes;
+  },
+
   // Users & Roles Setup (Req 8)
   addUser(userData) {
     const users = this.getUsers();
@@ -781,11 +826,18 @@ const BooksStore = {
     const currentReceivables = Math.max(0, totalReceivables - totalOverdue);
 
     const totalExpenses = expenses.reduce((s, e) => s + (Number(e.amount) || 0), 0);
-    const netProfit = totalCollected - totalExpenses;
+    const incomes = this.getIncomes();
+    const indirectIncome = incomes.filter(x => x.type !== "capital").reduce((s, x) => s + (Number(x.amount) || 0), 0);
+    const capitalIntroduced = incomes.filter(x => x.type === "capital").reduce((s, x) => s + (Number(x.amount) || 0), 0);
+    const totalIncome = totalCollected + indirectIncome;
+    const netProfit = totalIncome - totalExpenses;
 
     return {
       totalInvoiced,
       totalCollected,
+      indirectIncome,
+      totalIncome,
+      capitalIntroduced,
       totalReceivables,
       currentReceivables,
       totalOverdue,
