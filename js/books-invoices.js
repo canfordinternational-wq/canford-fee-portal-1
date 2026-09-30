@@ -10,19 +10,22 @@ function printCurrentInvoice() {
     return;
   }
 
-  // Open a completely separate print document. This guarantees that the PDF
-  // contains ONLY the invoice and never the Canford Books dashboard, sidebar,
-  // buttons, menus, or any other page information.
-  const printWindow = window.open('', '_blank', 'width=900,height=1200');
-  if (!printWindow) {
-    alert('Please allow pop-ups for Canford Books to print the invoice.');
-    return;
-  }
+  // Print through a temporary hidden iframe instead of a popup. This avoids
+  // popup blockers and guarantees that only the invoice is sent to the print
+  // engine. The main Canford Books page remains untouched.
+  const oldFrame = document.getElementById('canford-invoice-print-frame');
+  if (oldFrame) oldFrame.remove();
 
+  const frame = document.createElement('iframe');
+  frame.id = 'canford-invoice-print-frame';
+  frame.setAttribute('aria-hidden', 'true');
+  frame.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden;opacity:0;';
+  document.body.appendChild(frame);
+
+  const printDoc = frame.contentDocument || frame.contentWindow.document;
   const clone = source.cloneNode(true);
 
-  // Convert relative image paths to absolute URLs so logos/signatures/QR images
-  // continue to load inside the standalone print window.
+  // Make all relative invoice images absolute so logo, QR and signature load.
   clone.querySelectorAll('img[src]').forEach(img => {
     const src = img.getAttribute('src');
     if (src && !src.startsWith('data:') && !src.startsWith('blob:')) {
@@ -30,167 +33,114 @@ function printCurrentInvoice() {
     }
   });
 
-  // Copy the active styles from the application. Tailwind's runtime-generated
-  // <style> tag is included when present, so the invoice keeps the same layout.
-  const styleTags = Array.from(document.querySelectorAll('style'))
-    .map(style => style.outerHTML)
-    .join('\n');
-
+  // Bring the app stylesheet(s) into the isolated print document.
   const stylesheetLinks = Array.from(document.querySelectorAll('link[rel="stylesheet"]'))
     .map(link => {
       const href = link.href || link.getAttribute('href');
       return href ? `<link rel="stylesheet" href="${href}">` : '';
-    })
-    .join('\n');
+    }).join('\n');
+  const styleTags = Array.from(document.querySelectorAll('style'))
+    .map(style => style.outerHTML).join('\n');
 
-  printWindow.document.open();
-  printWindow.document.write(`<!DOCTYPE html>
+  printDoc.open();
+  printDoc.write(`<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${source.querySelector('strong')?.textContent || 'Canford Tax Invoice'}</title>
-  ${stylesheetLinks}
-  ${styleTags}
-  <style>
-    /* ================================================================
-       CANFORD BOOKS - INVOICE PDF ONLY
-       The print window contains one element: #invoice-sheet.
-       ================================================================ */
-    html, body {
-      width: 210mm !important;
-      height: 297mm !important;
-      min-height: 297mm !important;
-      margin: 0 !important;
-      padding: 0 !important;
-      background: #fff !important;
-      overflow: hidden !important;
-      -webkit-print-color-adjust: exact !important;
-      print-color-adjust: exact !important;
-    }
-
-    body {
-      display: block !important;
-      color: #0f172a !important;
-      overflow: hidden !important;
-    }
-
-    #invoice-sheet {
-      display: block !important;
-      width: 210mm !important;
-      height: 297mm !important;
-      min-height: 297mm !important;
-      max-height: 297mm !important;
-      max-width: none !important;
-      margin: 0 !important;
-      padding: 10mm !important;
-      box-sizing: border-box !important;
-      background: #fff !important;
-      border: 1px solid #d7dce2 !important;
-      border-radius: 0 !important;
-      box-shadow: none !important;
-      overflow: hidden !important;
-      position: relative !important;
-      page-break-before: avoid !important;
-      page-break-after: avoid !important;
-      page-break-inside: avoid !important;
-      break-before: avoid-page !important;
-      break-after: avoid-page !important;
-      break-inside: avoid-page !important;
-      transform-origin: top center !important;
-    }
-
-    /* Compact only the PDF version so the complete invoice fits on one A4 page. */
-    #invoice-sheet .mb-6 { margin-bottom: 12px !important; }
-    #invoice-sheet .pb-6 { padding-bottom: 12px !important; }
-    #invoice-sheet .p-6 { padding: 12px !important; }
-    #invoice-sheet .p-4 { padding: 9px !important; }
-    #invoice-sheet .p-3 { padding: 7px !important; }
-    #invoice-sheet .py-3 { padding-top: 7px !important; padding-bottom: 7px !important; }
-    #invoice-sheet .py-2\.5 { padding-top: 6px !important; padding-bottom: 6px !important; }
-    #invoice-sheet .gap-6 { gap: 12px !important; }
-    #invoice-sheet .gap-4 { gap: 10px !important; }
-
-    #invoice-sheet table {
-      width: 100% !important;
-      border-collapse: collapse !important;
-    }
-
-    #invoice-sheet thead { display: table-header-group !important; }
-    #invoice-sheet tfoot { display: table-footer-group !important; }
-    #invoice-sheet tr { page-break-inside: avoid !important; break-inside: avoid !important; }
-    #invoice-sheet img { max-width: 100%; }
-
-    @page {
-      size: A4 portrait;
-      margin: 0;
-    }
-  </style>
+<meta charset="UTF-8">
+<title>Canford Tax Invoice</title>
+${stylesheetLinks}
+${styleTags}
+<style>
+  @page { size: A4 portrait; margin: 0; }
+  html, body {
+    width: 210mm !important;
+    height: 297mm !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #fff !important;
+    overflow: hidden !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  body { display:block !important; }
+  #invoice-sheet {
+    width: 210mm !important;
+    height: 297mm !important;
+    min-height: 297mm !important;
+    max-height: 297mm !important;
+    box-sizing: border-box !important;
+    margin: 0 !important;
+    padding: 8mm !important;
+    background: #fff !important;
+    border: 1px solid #d7dce2 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    overflow: hidden !important;
+    transform-origin: top left !important;
+  }
+  #invoice-sheet .mb-6 { margin-bottom: 8px !important; }
+  #invoice-sheet .pb-6 { padding-bottom: 8px !important; }
+  #invoice-sheet .p-8 { padding: 8px !important; }
+  #invoice-sheet .p-6 { padding: 8px !important; }
+  #invoice-sheet .p-4 { padding: 7px !important; }
+  #invoice-sheet .p-3 { padding: 6px !important; }
+  #invoice-sheet .py-3 { padding-top: 5px !important; padding-bottom: 5px !important; }
+  #invoice-sheet .py-2\.5 { padding-top: 5px !important; padding-bottom: 5px !important; }
+  #invoice-sheet .gap-6 { gap: 8px !important; }
+  #invoice-sheet .gap-4 { gap: 8px !important; }
+  #invoice-sheet table { width:100% !important; border-collapse:collapse !important; }
+  #invoice-sheet tr { break-inside: avoid !important; page-break-inside: avoid !important; }
+  #invoice-sheet thead { display:table-header-group !important; }
+  #invoice-sheet img { max-width:100% !important; }
+  .no-print { display:none !important; }
+</style>
 </head>
-<body>
-  ${clone.outerHTML}
-</body>
+<body>${clone.outerHTML}</body>
 </html>`);
-  printWindow.document.close();
+  printDoc.close();
 
-  const doPrint = () => {
-    setTimeout(() => {
-      printWindow.focus();
-      printWindow.print();
-    }, 250);
-  };
+  const sheet = printDoc.getElementById('invoice-sheet');
+  if (!sheet) {
+    frame.remove();
+    alert('Unable to prepare the invoice for printing. Please reopen the invoice and try again.');
+    return;
+  }
 
-  // Wait for fonts and invoice images, then automatically fit the complete
-  // invoice into ONE A4 page. No page-breaks and no user scaling option needed.
-  const fitInvoiceToOnePage = () => {
-    const sheet = printWindow.document.getElementById('invoice-sheet');
-    if (!sheet) return;
-
-    // First measure the natural content height.
-    sheet.style.height = 'auto';
-    sheet.style.minHeight = '0';
-    sheet.style.maxHeight = 'none';
-    sheet.style.overflow = 'visible';
-    sheet.style.transform = 'none';
-
-    const naturalHeight = Math.max(sheet.scrollHeight, sheet.getBoundingClientRect().height);
+  const finish = () => {
+    // Fit the invoice to the printable A4 height automatically. The user does
+    // not need to adjust any scale setting.
     const pageHeightPx = 297 * (96 / 25.4);
-    const safeHeightPx = pageHeightPx - (2 * (10 * (96 / 25.4)));
-    const scale = Math.min(1, safeHeightPx / naturalHeight);
-
-    sheet.style.width = '210mm';
-    sheet.style.height = '297mm';
-    sheet.style.minHeight = '297mm';
-    sheet.style.maxHeight = '297mm';
-    sheet.style.overflow = 'hidden';
-    sheet.style.transformOrigin = 'top center';
-    sheet.style.transform = `scale(${scale.toFixed(5)})`;
-  };
-
-  const printWhenReady = () => {
-    fitInvoiceToOnePage();
-    // Give the browser one layout frame after scaling before opening print.
-    requestAnimationFrame(() => requestAnimationFrame(doPrint));
-  };
-
-  const images = Array.from(printWindow.document.images);
-  Promise.all(images.map(img => {
-    if (img.complete) return Promise.resolve();
-    return new Promise(resolve => {
-      img.onload = resolve;
-      img.onerror = resolve;
-    });
-  })).then(() => {
-    if (printWindow.document.fonts?.ready) {
-      printWindow.document.fonts.ready.then(printWhenReady).catch(printWhenReady);
-    } else {
-      printWhenReady();
+    const naturalHeight = Math.max(sheet.scrollHeight, sheet.getBoundingClientRect().height);
+    const safeHeight = pageHeightPx - (2 * (8 * (96 / 25.4)));
+    const scale = Math.min(1, safeHeight / Math.max(naturalHeight, 1));
+    if (scale < 0.999) {
+      sheet.style.transform = `scale(${scale.toFixed(5)})`;
+      sheet.style.transformOrigin = 'top left';
     }
-  });
 
-  printWindow.onafterprint = () => {
-    setTimeout(() => printWindow.close(), 300);
+    setTimeout(() => {
+      frame.contentWindow.focus();
+      frame.contentWindow.print();
+      setTimeout(() => frame.remove(), 1200);
+    }, 150);
   };
+
+  const waitForImages = () => {
+    const images = Array.from(printDoc.images || []);
+    Promise.all(images.map(img => {
+      if (img.complete) return Promise.resolve();
+      return new Promise(resolve => {
+        img.onload = resolve;
+        img.onerror = resolve;
+      });
+    })).then(() => {
+      if (printDoc.fonts && printDoc.fonts.ready) {
+        printDoc.fonts.ready.then(finish).catch(finish);
+      } else finish();
+    });
+  };
+
+  waitForImages();
 }
 
 // ============================================================================
