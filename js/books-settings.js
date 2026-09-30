@@ -4,6 +4,46 @@
 
 let currentSettingsTab = "org";
 
+// Automatically trim empty transparent/white margins around uploaded signatures.
+function compactSignatureImage(dataUrl, callback) {
+  const img = new Image();
+  img.onload = function () {
+    try {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.naturalWidth || img.width;
+      canvas.height = img.naturalHeight || img.height;
+      const ctx = canvas.getContext('2d', { willReadFrequently: true });
+      ctx.drawImage(img, 0, 0);
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const data = imageData.data;
+      let minX = canvas.width, minY = canvas.height, maxX = -1, maxY = -1;
+      for (let y = 0; y < canvas.height; y++) {
+        for (let x = 0; x < canvas.width; x++) {
+          const i = (y * canvas.width + x) * 4;
+          const r = data[i], g = data[i + 1], b = data[i + 2], a = data[i + 3];
+          const visible = a > 20 && (r < 242 || g < 242 || b < 242);
+          if (visible) {
+            minX = Math.min(minX, x); minY = Math.min(minY, y);
+            maxX = Math.max(maxX, x); maxY = Math.max(maxY, y);
+          }
+        }
+      }
+      if (maxX < 0 || maxY < 0) return callback(dataUrl);
+      const pad = Math.max(4, Math.round(Math.min(canvas.width, canvas.height) * 0.02));
+      minX = Math.max(0, minX - pad); minY = Math.max(0, minY - pad);
+      maxX = Math.min(canvas.width - 1, maxX + pad); maxY = Math.min(canvas.height - 1, maxY + pad);
+      const cropW = maxX - minX + 1, cropH = maxY - minY + 1;
+      if (cropW > canvas.width * 0.97 && cropH > canvas.height * 0.97) return callback(dataUrl);
+      const out = document.createElement('canvas');
+      out.width = cropW; out.height = cropH;
+      out.getContext('2d').drawImage(canvas, minX, minY, cropW, cropH, 0, 0, cropW, cropH);
+      callback(out.toDataURL('image/png'));
+    } catch (err) { callback(dataUrl); }
+  };
+  img.onerror = function () { callback(dataUrl); };
+  img.src = dataUrl;
+}
+
 function initSettingsModule() {
   switchSettingsTab('org');
 }
@@ -61,7 +101,15 @@ function loadOrgSettingsForm() {
 
   const preview = document.getElementById("set-sign-preview");
   if (sign.image) {
-    preview.innerHTML = `<img src="${sign.image}" alt="Digital Signature" style="width:${Number(sign.width || 180)}px;height:${Number(sign.height || 60)}px;object-fit:contain">`;
+    const width = Number(sign.width || 180), height = Number(sign.height || 60);
+    preview.innerHTML = `<img src="${sign.image}" alt="Digital Signature" style="display:block;width:${width}px;max-width:100%;height:auto;max-height:${height}px;object-fit:contain;object-position:center bottom;margin:0 auto">`;
+    compactSignatureImage(sign.image, compacted => {
+      if (compacted && compacted !== sign.image) {
+        const current = BooksStore.getOrg();
+        BooksStore.updateDigitalSign({ ...(current.digitalSign || {}), image: compacted });
+        preview.innerHTML = `<img src="${compacted}" alt="Digital Signature" style="display:block;width:${width}px;max-width:100%;height:auto;max-height:${height}px;object-fit:contain;object-position:center bottom;margin:0 auto">`;
+      }
+    });
   } else {
     preview.innerHTML = `<span class="italic text-base font-serif text-slate-800">${sign.name || 'Authorized Signatory'}</span>`;
   }
@@ -116,15 +164,17 @@ function handleSignatureFileUpload(event) {
   const reader = new FileReader();
   reader.onload = function(e) {
     const dataUrl = e.target.result;
-    const org = BooksStore.getOrg();
-    org.digitalSign = org.digitalSign || {};
-    org.digitalSign.image = dataUrl;
-    BooksStore.updateDigitalSign(org.digitalSign);
-
-    const width = Number(document.getElementById("set-sign-width")?.value) || 180;
-    const height = Number(document.getElementById("set-sign-height")?.value) || 60;
-    document.getElementById("set-sign-preview").innerHTML = `<img src="${dataUrl}" alt="Signature" style="width:${width}px;height:${height}px;object-fit:contain">`;
-    showToast("Digital signature image uploaded successfully!", "success");
+    compactSignatureImage(dataUrl, compacted => {
+      const org = BooksStore.getOrg();
+      org.digitalSign = org.digitalSign || {};
+      org.digitalSign.image = compacted;
+      BooksStore.updateDigitalSign(org.digitalSign);
+      const width = Number(document.getElementById("set-sign-width")?.value) || 180;
+      const height = Number(document.getElementById("set-sign-height")?.value) || 60;
+      document.getElementById("set-sign-preview").innerHTML = `<img src="${compacted}" alt="Signature" style="display:block;width:${width}px;max-width:100%;height:auto;max-height:${height}px;object-fit:contain;object-position:center bottom;margin:0 auto">`;
+      showToast("Digital signature uploaded and compacted successfully!", "success");
+      if (typeof renderInvoiceDetail === 'function' && typeof currentSelectedInvoiceId !== 'undefined' && currentSelectedInvoiceId) renderInvoiceDetail(currentSelectedInvoiceId);
+    });
   };
   reader.readAsDataURL(file);
 }
@@ -330,9 +380,15 @@ function updateSignaturePreviewSize(saveNow = true) {
   const img = document.querySelector("#set-sign-preview img");
   if (img) {
     img.style.width = `${width}px`;
-    img.style.height = `${height}px`;
-    img.setAttribute("width", String(width));
-    img.setAttribute("height", String(height));
+    img.style.maxWidth = '100%';
+    img.style.height = 'auto';
+    img.style.maxHeight = `${height}px`;
+    img.style.objectFit = 'contain';
+    img.style.objectPosition = 'center bottom';
+    img.style.display = 'block';
+    img.style.margin = '0 auto';
+    img.removeAttribute('height');
+    img.setAttribute('width', String(width));
   }
 
   if (saveNow && typeof BooksStore !== "undefined") {

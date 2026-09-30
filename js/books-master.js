@@ -167,6 +167,11 @@ function submitEditCourse(event) {
     closeEditCourseModal();
     renderCoursesMaster();
     populateCourseDropdowns();
+    // Force a fresh reconciliation from Master Setup before refreshing the
+    // student directory and dashboard.
+    if (typeof StudentStore !== 'undefined' && typeof StudentStore.syncFeesFromMaster === 'function') {
+      StudentStore.syncFeesFromMaster();
+    }
     if (typeof refreshAdminTable === 'function') refreshAdminTable();
     if (typeof refreshZohoDashboard === 'function') refreshZohoDashboard();
     showToast(`Course "${title}" updated. Standard fee ₹${Number(updatedCourse.totalFee).toLocaleString('en-IN')} is now reflected in student balances and new billing.`, "success");

@@ -28,6 +28,13 @@ function updateAdminKPIs() {
 
 // Render Admin Student Table
 function refreshAdminTable() {
+  // Always reconcile the directory with the latest Master Setup fee before
+  // rendering. This prevents stale student-directory totals after a master
+  // fee is edited, including when the directory was already open.
+  if (typeof StudentStore !== 'undefined' && typeof StudentStore.syncFeesFromMaster === 'function') {
+    StudentStore.syncFeesFromMaster();
+  }
+
   updateAdminKPIs();
 
   let students = StudentStore.getAll();

@@ -626,6 +626,43 @@ const StudentStore = {
     );
   },
 
+  // Reconcile every student's current standard fee from Master Setup.
+  // This is intentionally safe to run whenever the Student Directory opens: 
+  // payments already made are preserved, while the current course fee and
+  // outstanding balance follow the latest Master Setup amount.
+  syncFeesFromMaster() {
+    if (typeof BooksStore === 'undefined' || typeof BooksStore.getCourses !== 'function') return 0;
+
+    const courses = BooksStore.getCourses() || [];
+    const courseMap = new Map(courses.map(c => [String(c.id), c]));
+    const students = this.getAll();
+    let changed = 0;
+
+    students.forEach(student => {
+      const course = courseMap.get(String(student.courseId));
+      if (!course) return;
+
+      const masterFee = Number(course.totalFee);
+      if (!Number.isFinite(masterFee) || masterFee < 0) return;
+
+      const oldFee = Number(student.totalFee) || 0;
+      const paid = Math.max(0, Number(student.paidFee) || 0);
+      const newBalance = Math.max(0, masterFee - paid);
+      const newStatus = newBalance === 0 ? 'Paid' : (paid > 0 ? 'Partial' : 'Pending');
+
+      if (oldFee !== masterFee || Number(student.balanceFee) !== newBalance || student.courseName !== course.title || student.feeStatus !== newStatus) {
+        student.totalFee = masterFee;
+        student.balanceFee = newBalance;
+        student.feeStatus = newStatus;
+        student.courseName = course.title;
+        changed++;
+      }
+    });
+
+    if (changed) this.saveAll(students);
+    return changed;
+  },
+
   applyMasterFeeToCourse(courseId, newFee) {
     const fee = Number(newFee);
     if (!courseId || !Number.isFinite(fee) || fee < 0) return 0;
