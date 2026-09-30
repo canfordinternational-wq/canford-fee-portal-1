@@ -624,6 +624,7 @@ const BooksStore = {
   save() {
     try {
       localStorage.setItem(ZOHO_STORAGE_KEY, JSON.stringify(this.data));
+      window.dispatchEvent(new CustomEvent("canford-books-data-changed"));
     } catch (e) {
       console.error("Failed saving books data", e);
     }
