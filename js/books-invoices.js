@@ -59,11 +59,12 @@ function printCurrentInvoice() {
        ================================================================ */
     html, body {
       width: 210mm !important;
+      height: 297mm !important;
       min-height: 297mm !important;
       margin: 0 !important;
       padding: 0 !important;
       background: #fff !important;
-      overflow: visible !important;
+      overflow: hidden !important;
       -webkit-print-color-adjust: exact !important;
       print-color-adjust: exact !important;
     }
@@ -71,23 +72,44 @@ function printCurrentInvoice() {
     body {
       display: block !important;
       color: #0f172a !important;
+      overflow: hidden !important;
     }
 
     #invoice-sheet {
       display: block !important;
-      width: 190mm !important;
-      min-height: 277mm !important;
+      width: 210mm !important;
+      height: 297mm !important;
+      min-height: 297mm !important;
+      max-height: 297mm !important;
       max-width: none !important;
-      margin: 0 auto !important;
+      margin: 0 !important;
       padding: 10mm !important;
       box-sizing: border-box !important;
       background: #fff !important;
       border: 1px solid #d7dce2 !important;
       border-radius: 0 !important;
       box-shadow: none !important;
-      overflow: visible !important;
+      overflow: hidden !important;
       position: relative !important;
+      page-break-before: avoid !important;
+      page-break-after: avoid !important;
+      page-break-inside: avoid !important;
+      break-before: avoid-page !important;
+      break-after: avoid-page !important;
+      break-inside: avoid-page !important;
+      transform-origin: top center !important;
     }
+
+    /* Compact only the PDF version so the complete invoice fits on one A4 page. */
+    #invoice-sheet .mb-6 { margin-bottom: 12px !important; }
+    #invoice-sheet .pb-6 { padding-bottom: 12px !important; }
+    #invoice-sheet .p-6 { padding: 12px !important; }
+    #invoice-sheet .p-4 { padding: 9px !important; }
+    #invoice-sheet .p-3 { padding: 7px !important; }
+    #invoice-sheet .py-3 { padding-top: 7px !important; padding-bottom: 7px !important; }
+    #invoice-sheet .py-2\.5 { padding-top: 6px !important; padding-bottom: 6px !important; }
+    #invoice-sheet .gap-6 { gap: 12px !important; }
+    #invoice-sheet .gap-4 { gap: 10px !important; }
 
     #invoice-sheet table {
       width: 100% !important;
@@ -96,12 +118,12 @@ function printCurrentInvoice() {
 
     #invoice-sheet thead { display: table-header-group !important; }
     #invoice-sheet tfoot { display: table-footer-group !important; }
-    #invoice-sheet tr { page-break-inside: avoid !important; }
+    #invoice-sheet tr { page-break-inside: avoid !important; break-inside: avoid !important; }
     #invoice-sheet img { max-width: 100%; }
 
     @page {
       size: A4 portrait;
-      margin: 10mm;
+      margin: 0;
     }
   </style>
 </head>
@@ -118,7 +140,39 @@ function printCurrentInvoice() {
     }, 250);
   };
 
-  // Wait for fonts and invoice images before opening the print dialog.
+  // Wait for fonts and invoice images, then automatically fit the complete
+  // invoice into ONE A4 page. No page-breaks and no user scaling option needed.
+  const fitInvoiceToOnePage = () => {
+    const sheet = printWindow.document.getElementById('invoice-sheet');
+    if (!sheet) return;
+
+    // First measure the natural content height.
+    sheet.style.height = 'auto';
+    sheet.style.minHeight = '0';
+    sheet.style.maxHeight = 'none';
+    sheet.style.overflow = 'visible';
+    sheet.style.transform = 'none';
+
+    const naturalHeight = Math.max(sheet.scrollHeight, sheet.getBoundingClientRect().height);
+    const pageHeightPx = 297 * (96 / 25.4);
+    const safeHeightPx = pageHeightPx - (2 * (10 * (96 / 25.4)));
+    const scale = Math.min(1, safeHeightPx / naturalHeight);
+
+    sheet.style.width = '210mm';
+    sheet.style.height = '297mm';
+    sheet.style.minHeight = '297mm';
+    sheet.style.maxHeight = '297mm';
+    sheet.style.overflow = 'hidden';
+    sheet.style.transformOrigin = 'top center';
+    sheet.style.transform = `scale(${scale.toFixed(5)})`;
+  };
+
+  const printWhenReady = () => {
+    fitInvoiceToOnePage();
+    // Give the browser one layout frame after scaling before opening print.
+    requestAnimationFrame(() => requestAnimationFrame(doPrint));
+  };
+
   const images = Array.from(printWindow.document.images);
   Promise.all(images.map(img => {
     if (img.complete) return Promise.resolve();
@@ -128,9 +182,9 @@ function printCurrentInvoice() {
     });
   })).then(() => {
     if (printWindow.document.fonts?.ready) {
-      printWindow.document.fonts.ready.then(doPrint).catch(doPrint);
+      printWindow.document.fonts.ready.then(printWhenReady).catch(printWhenReady);
     } else {
-      doPrint();
+      printWhenReady();
     }
   });
 
