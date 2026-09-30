@@ -616,6 +616,7 @@ const BooksStore = {
     this.data.invoices = this.data.invoices || SEED_INVOICES;
     this.data.payments = this.data.payments || SEED_PAYMENTS;
     this.data.expenses = this.data.expenses || SEED_EXPENSES;
+    this.data.expenseEdits = Array.isArray(this.data.expenseEdits) ? this.data.expenseEdits : [];
 
     this.save();
     return this.data;
@@ -642,7 +643,8 @@ const BooksStore = {
       students: typeof StudentStore !== 'undefined' ? StudentStore.resetToDefault() : [],
       invoices: SEED_INVOICES,
       payments: SEED_PAYMENTS,
-      expenses: SEED_EXPENSES
+      expenses: SEED_EXPENSES,
+      expenseEdits: []
     };
     this.save();
     return this.data;
@@ -1049,6 +1051,40 @@ const BooksStore = {
       this.save();
     }
     return this.data.payments;
+  },
+
+  // Edit Operating Expense with mandatory reason and audit trail
+  updateExpense(id, changes, reason) {
+    const expense = this.data.expenses.find(e => e.id === id);
+    const editReason = String(reason || "").trim();
+    if (!expense) throw new Error("Expense not found.");
+    if (!editReason) throw new Error("A reason is required to edit an operating expense.");
+
+    const before = { ...expense };
+    const allowed = ["date", "particulars", "category", "vendor", "amount", "paidThrough", "reference", "notes"];
+    allowed.forEach(k => {
+      if (Object.prototype.hasOwnProperty.call(changes, k)) {
+        expense[k] = k === "amount" ? Number(changes[k]) : changes[k];
+      }
+    });
+    if (!expense.particulars || !expense.date || !Number.isFinite(Number(expense.amount)) || Number(expense.amount) <= 0) {
+      throw new Error("Please enter a valid date, particulars and amount.");
+    }
+    const changedAt = new Date().toISOString();
+    this.data.expenseEdits.unshift({
+      id: `EXP-EDIT-${Date.now()}`,
+      expenseId: id,
+      changedAt,
+      reason: editReason,
+      before,
+      after: { ...expense }
+    });
+    this.save();
+    return expense;
+  },
+
+  getExpenseEditHistory(id) {
+    return (this.data.expenseEdits || []).filter(x => x.expenseId === id);
   },
 
   // Delete Expense
