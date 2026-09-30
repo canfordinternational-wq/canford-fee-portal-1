@@ -436,70 +436,65 @@ function sendWhatsAppReminder(studentId) {
 
 // Add New Student Handler (Req 1: Immediately show student details)
 function handleAddStudentSubmit(event) {
-  event.preventDefault();
+  if (event) event.preventDefault();
+  const get = id => document.getElementById(id);
+  const name = get("new-student-name")?.value.trim() || "";
+  const courseId = get("new-student-course")?.value || "";
+  const phone = get("new-student-phone")?.value.trim() || "";
+  const email = get("new-student-email")?.value.trim() || "";
+  const dob = get("new-student-dob")?.value || "";
+  const address = get("new-student-address")?.value.trim() || "";
+  const place = get("new-student-place")?.value.trim() || "";
+  const guardianName = get("new-student-guardian-name")?.value.trim() || "";
+  const guardianPhone = get("new-student-guardian-phone")?.value.trim() || "";
+  const guardianRelation = get("new-student-guardian-relation")?.value.trim() || "";
+  const qualification = get("new-student-qualification")?.value.trim() || "";
+  const batch = get("new-student-batch")?.value.trim() || "";
+  const admissionDate = get("new-student-admission-date")?.value || new Date().toISOString().split('T')[0];
+  const initialPayment = Number(get("new-student-initial-pay")?.value) || 0;
+  const paymentMode = get("new-student-pay-mode")?.value || "Cash / Direct";
 
-  const name = document.getElementById("new-student-name").value.trim();
-  const courseId = document.getElementById("new-student-course").value;
-  const phone = document.getElementById("new-student-phone").value.trim();
-  const email = document.getElementById("new-student-email").value.trim();
-  const dob = document.getElementById("new-student-dob").value;
-  const address = document.getElementById("new-student-address").value.trim();
-  const place = document.getElementById("new-student-place").value.trim();
-  const guardianName = document.getElementById("new-student-guardian-name").value.trim();
-  const guardianPhone = document.getElementById("new-student-guardian-phone").value.trim();
-  const guardianRelation = document.getElementById("new-student-guardian-relation").value.trim();
-  const qualification = document.getElementById("new-student-qualification").value.trim();
-  const batch = document.getElementById("new-student-batch").value.trim();
-  const admissionDate = document.getElementById("new-student-admission-date").value;
-  const initialPayment = Number(document.getElementById("new-student-initial-pay").value) || 0;
-  const paymentMode = document.getElementById("new-student-pay-mode").value;
+  if (!name) return showToast("Please enter the student's full name.", "error");
+  if (!courseId) return showToast("Please select a course.", "error");
+  if (!phone) return showToast("Please enter the student's phone number.", "error");
 
   try {
+    // Make sure the latest Master Setup data is available before admission.
+    if (typeof BooksStore !== 'undefined' && !BooksStore.data && typeof BooksStore.init === 'function') {
+      BooksStore.init();
+    }
+
     const newStudent = StudentStore.addStudent({
-      name,
-      courseId,
-      phone,
-      email,
-      dob,
-      address,
-      place,
-      guardianName,
-      guardianPhone,
-      guardianRelation,
-      qualification,
-      batch,
-      admissionDate,
-      initialPayment,
-      paymentMode
+      name, courseId, phone, email, dob, address, place,
+      guardianName, guardianPhone, guardianRelation,
+      qualification, batch, admissionDate, initialPayment, paymentMode
     });
 
-    closeAddStudentModal();
-
-    // Synchronize BooksStore
+    // Keep the accounting store and student store synchronized.
     if (typeof BooksStore !== 'undefined') {
+      BooksStore.data = BooksStore.data || {};
       BooksStore.data.students = StudentStore.getAll();
-      BooksStore.save();
+      if (typeof BooksStore.save === 'function') BooksStore.save();
     }
 
-    refreshAdminTable();
+    const form = get("add-student-modal")?.querySelector("form");
+    if (form) form.reset();
+    closeAddStudentModal();
+    if (typeof refreshAdminTable === 'function') refreshAdminTable();
     if (typeof refreshZohoDashboard === 'function') refreshZohoDashboard();
-
     showToast(`Candidate ${newStudent.name} (${newStudent.id}) registered successfully!`, "success");
-
-    // Req 1: Immediately open and show the new student's full details!
     viewStudentProfile(newStudent.id);
 
-    // If initial payment made, offer receipt option
-    if (initialPayment > 0 && newStudent.paymentHistory.length > 0) {
-      setTimeout(() => {
-        openReceiptModal(newStudent, newStudent.paymentHistory[0]);
-      }, 500);
+    if (initialPayment > 0 && newStudent.paymentHistory?.length > 0) {
+      setTimeout(() => openReceiptModal(newStudent, newStudent.paymentHistory[0]), 500);
     }
+    return newStudent;
   } catch (err) {
-    showToast(err.message, "error");
+    console.error("Admission submission failed:", err);
+    showToast(`Admission could not be saved: ${err.message || err}`, "error");
+    return null;
   }
 }
-
 function openAddStudentModal() {
   const modal = document.getElementById("add-student-modal");
   const admissionDate = document.getElementById("new-student-admission-date");

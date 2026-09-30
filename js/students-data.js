@@ -591,8 +591,10 @@ const StudentStore = {
   saveAll(students) {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(students));
+      window.dispatchEvent(new CustomEvent("canford-students-data-changed"));
     } catch (e) {
       console.error("Failed to save students to localStorage", e);
+      throw new Error("Student data could not be saved in this browser.");
     }
   },
 
