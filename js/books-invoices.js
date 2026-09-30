@@ -1,7 +1,15 @@
+// ============================================================================
+// CANFORD BOOKS - INVOICE MANAGEMENT MODULE (ZOHO BOOKS SPLIT-PANE UI)
+// ============================================================================
+
+let currentSelectedInvoiceId = null;
+let invoiceFilterStatus = "all";
+
 
 /**
- * Print the currently displayed invoice using a dedicated print-only root.
- * This avoids browser print engines inheriting the dashboard/sidebar layout.
+ * Print the currently displayed invoice only.
+ * Uses the current document (not a popup or hidden iframe), which is reliable
+ * on GitHub Pages and prevents popup-blocker / blank-print issues.
  */
 function printCurrentInvoice() {
   const source = document.getElementById('invoice-sheet');
@@ -10,145 +18,99 @@ function printCurrentInvoice() {
     return;
   }
 
-  // Print through a temporary hidden iframe instead of a popup. This avoids
-  // popup blockers and guarantees that only the invoice is sent to the print
-  // engine. The main Canford Books page remains untouched.
-  const oldFrame = document.getElementById('canford-invoice-print-frame');
-  if (oldFrame) oldFrame.remove();
+  const oldRoot = document.getElementById('canford-print-root');
+  if (oldRoot) oldRoot.remove();
 
-  const frame = document.createElement('iframe');
-  frame.id = 'canford-invoice-print-frame';
-  frame.setAttribute('aria-hidden', 'true');
-  frame.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden;opacity:0;';
-  document.body.appendChild(frame);
+  const root = document.createElement('div');
+  root.id = 'canford-print-root';
+  root.innerHTML = source.outerHTML;
+  document.body.appendChild(root);
 
-  const printDoc = frame.contentDocument || frame.contentWindow.document;
-  const clone = source.cloneNode(true);
-
-  // Make all relative invoice images absolute so logo, QR and signature load.
-  clone.querySelectorAll('img[src]').forEach(img => {
-    const src = img.getAttribute('src');
-    if (src && !src.startsWith('data:') && !src.startsWith('blob:')) {
-      img.setAttribute('src', new URL(src, window.location.href).href);
+  const style = document.createElement('style');
+  style.id = 'canford-print-style';
+  style.textContent = `
+    @media print {
+      @page { size: A4 portrait; margin: 0; }
+      html, body {
+        width: 210mm !important;
+        height: 297mm !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        background: #fff !important;
+        overflow: hidden !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+      body > *:not(#canford-print-root) { display: none !important; }
+      #canford-print-root {
+        display: block !important;
+        position: fixed !important;
+        left: 0 !important;
+        top: 0 !important;
+        width: 210mm !important;
+        height: 297mm !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        background: #fff !important;
+        overflow: hidden !important;
+        z-index: 2147483647 !important;
+      }
+      #canford-print-root #invoice-sheet {
+        display: block !important;
+        width: 210mm !important;
+        height: 297mm !important;
+        min-height: 297mm !important;
+        max-height: 297mm !important;
+        box-sizing: border-box !important;
+        margin: 0 !important;
+        padding: 8mm !important;
+        border: 1px solid #d7dce2 !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+        background: #fff !important;
+        overflow: hidden !important;
+        font-size: 9.5pt !important;
+      }
+      #canford-print-root #invoice-sheet .no-print { display: none !important; }
+      #canford-print-root #invoice-sheet .mb-6 { margin-bottom: 8px !important; }
+      #canford-print-root #invoice-sheet .pb-6 { padding-bottom: 8px !important; }
+      #canford-print-root #invoice-sheet .p-8 { padding: 8px !important; }
+      #canford-print-root #invoice-sheet .p-6 { padding: 8px !important; }
+      #canford-print-root #invoice-sheet .p-4 { padding: 7px !important; }
+      #canford-print-root #invoice-sheet .p-3 { padding: 6px !important; }
+      #canford-print-root #invoice-sheet .py-3 { padding-top: 5px !important; padding-bottom: 5px !important; }
+      #canford-print-root #invoice-sheet .py-2\.5 { padding-top: 5px !important; padding-bottom: 5px !important; }
+      #canford-print-root #invoice-sheet .gap-6 { gap: 8px !important; }
+      #canford-print-root #invoice-sheet .gap-4 { gap: 8px !important; }
+      #canford-print-root #invoice-sheet table { width: 100% !important; border-collapse: collapse !important; }
+      #canford-print-root #invoice-sheet tr { break-inside: avoid !important; page-break-inside: avoid !important; }
+      #canford-print-root #invoice-sheet thead { display: table-header-group !important; }
+      #canford-print-root #invoice-sheet img { max-width: 100% !important; }
     }
-  });
-
-  // Bring the app stylesheet(s) into the isolated print document.
-  const stylesheetLinks = Array.from(document.querySelectorAll('link[rel="stylesheet"]'))
-    .map(link => {
-      const href = link.href || link.getAttribute('href');
-      return href ? `<link rel="stylesheet" href="${href}">` : '';
-    }).join('\n');
-  const styleTags = Array.from(document.querySelectorAll('style'))
-    .map(style => style.outerHTML).join('\n');
-
-  printDoc.open();
-  printDoc.write(`<!doctype html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<title>Canford Tax Invoice</title>
-${stylesheetLinks}
-${styleTags}
-<style>
-  @page { size: A4 portrait; margin: 0; }
-  html, body {
-    width: 210mm !important;
-    height: 297mm !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    background: #fff !important;
-    overflow: hidden !important;
-    -webkit-print-color-adjust: exact !important;
-    print-color-adjust: exact !important;
-  }
-  body { display:block !important; }
-  #invoice-sheet {
-    width: 210mm !important;
-    height: 297mm !important;
-    min-height: 297mm !important;
-    max-height: 297mm !important;
-    box-sizing: border-box !important;
-    margin: 0 !important;
-    padding: 8mm !important;
-    background: #fff !important;
-    border: 1px solid #d7dce2 !important;
-    border-radius: 0 !important;
-    box-shadow: none !important;
-    overflow: hidden !important;
-    transform-origin: top left !important;
-  }
-  #invoice-sheet .mb-6 { margin-bottom: 8px !important; }
-  #invoice-sheet .pb-6 { padding-bottom: 8px !important; }
-  #invoice-sheet .p-8 { padding: 8px !important; }
-  #invoice-sheet .p-6 { padding: 8px !important; }
-  #invoice-sheet .p-4 { padding: 7px !important; }
-  #invoice-sheet .p-3 { padding: 6px !important; }
-  #invoice-sheet .py-3 { padding-top: 5px !important; padding-bottom: 5px !important; }
-  #invoice-sheet .py-2\.5 { padding-top: 5px !important; padding-bottom: 5px !important; }
-  #invoice-sheet .gap-6 { gap: 8px !important; }
-  #invoice-sheet .gap-4 { gap: 8px !important; }
-  #invoice-sheet table { width:100% !important; border-collapse:collapse !important; }
-  #invoice-sheet tr { break-inside: avoid !important; page-break-inside: avoid !important; }
-  #invoice-sheet thead { display:table-header-group !important; }
-  #invoice-sheet img { max-width:100% !important; }
-  .no-print { display:none !important; }
-</style>
-</head>
-<body>${clone.outerHTML}</body>
-</html>`);
-  printDoc.close();
-
-  const sheet = printDoc.getElementById('invoice-sheet');
-  if (!sheet) {
-    frame.remove();
-    alert('Unable to prepare the invoice for printing. Please reopen the invoice and try again.');
-    return;
-  }
-
-  const finish = () => {
-    // Fit the invoice to the printable A4 height automatically. The user does
-    // not need to adjust any scale setting.
-    const pageHeightPx = 297 * (96 / 25.4);
-    const naturalHeight = Math.max(sheet.scrollHeight, sheet.getBoundingClientRect().height);
-    const safeHeight = pageHeightPx - (2 * (8 * (96 / 25.4)));
-    const scale = Math.min(1, safeHeight / Math.max(naturalHeight, 1));
-    if (scale < 0.999) {
-      sheet.style.transform = `scale(${scale.toFixed(5)})`;
-      sheet.style.transformOrigin = 'top left';
+    @media screen {
+      #canford-print-root { display: none !important; }
     }
+  `;
+  document.head.appendChild(style);
 
-    setTimeout(() => {
-      frame.contentWindow.focus();
-      frame.contentWindow.print();
-      setTimeout(() => frame.remove(), 1200);
-    }, 150);
+  // Give the browser one frame to lay out images/fonts before printing.
+  const cleanup = () => {
+    const r = document.getElementById('canford-print-root');
+    const st = document.getElementById('canford-print-style');
+    if (r) r.remove();
+    if (st) st.remove();
+    window.removeEventListener('afterprint', cleanup);
   };
+  window.addEventListener('afterprint', cleanup, { once: true });
 
-  const waitForImages = () => {
-    const images = Array.from(printDoc.images || []);
-    Promise.all(images.map(img => {
-      if (img.complete) return Promise.resolve();
-      return new Promise(resolve => {
-        img.onload = resolve;
-        img.onerror = resolve;
-      });
-    })).then(() => {
-      if (printDoc.fonts && printDoc.fonts.ready) {
-        printDoc.fonts.ready.then(finish).catch(finish);
-      } else finish();
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      window.print();
+      // Some browsers do not fire afterprint when printing is cancelled.
+      setTimeout(cleanup, 3000);
     });
-  };
-
-  waitForImages();
+  });
 }
-
-// ============================================================================
-// CANFORD BOOKS - INVOICE MANAGEMENT MODULE (ZOHO BOOKS SPLIT-PANE UI)
-// ============================================================================
-
-let currentSelectedInvoiceId = null;
-let invoiceFilterStatus = "all";
 
 function initInvoicesModule() {
   renderInvoicesList();
