@@ -298,9 +298,14 @@ function viewStudentProfile(studentId) {
         <p class="text-xs text-slate-500 mt-1">${student.courseName} • ${student.batch || 'Regular 2025'}</p>
       </div>
       <div class="text-right">
-        <button onclick="printAdmissionForm('${student.id}')" class="no-print mb-2 px-3 py-1.5 bg-[#005696] text-white rounded-lg font-bold text-[10px]">
-          <i class="fas fa-print mr-1"></i> Print Admission Form
-        </button>
+        <div class="flex justify-end gap-2 mb-2 no-print">
+          <button onclick="openEditAdmissionModal('${student.id}')" class="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-lg font-bold text-[10px]">
+            <i class="fas fa-pen mr-1"></i> Edit Admission
+          </button>
+          <button onclick="printAdmissionForm('${student.id}')" class="px-3 py-1.5 bg-[#005696] text-white rounded-lg font-bold text-[10px]">
+            <i class="fas fa-print mr-1"></i> Print Admission Form
+          </button>
+        </div>
         <span class="text-xs text-slate-400 block">Status</span>
         <div class="font-bold text-emerald-700 text-sm">${student.status}</div>
       </div>
@@ -375,6 +380,25 @@ function viewStudentProfile(studentId) {
         ${installmentsHtml}
       </div>
     </div>
+
+    <!-- Admission Edit History -->
+    ${Array.isArray(student.admissionEditHistory) && student.admissionEditHistory.length ? `
+      <div class="mb-4 border border-amber-200 bg-amber-50 rounded-xl p-3">
+        <div class="flex items-center justify-between mb-2">
+          <h3 class="text-xs uppercase tracking-wider font-bold text-slate-700"><i class="fas fa-history text-amber-600 mr-1"></i> Admission Edit History</h3>
+          <span class="text-[10px] text-slate-500">${student.admissionEditHistory.length} change(s)</span>
+        </div>
+        <div class="space-y-2 max-h-40 overflow-y-auto pr-1">
+          ${student.admissionEditHistory.slice().reverse().map(h => `
+            <div class="bg-white border border-amber-100 rounded-lg p-2.5">
+              <div class="flex justify-between gap-3">
+                <span class="font-bold text-slate-800">${h.reason}</span>
+                <span class="text-[10px] text-slate-500 whitespace-nowrap">${new Date(h.editedAt).toLocaleString('en-IN')}</span>
+              </div>
+              <div class="text-[10px] text-slate-500 mt-1">Changed: ${(h.editedFields || []).join(', ') || 'Admission details'}</div>
+            </div>`).join('')}
+        </div>
+      </div>` : ''}
 
     <!-- Payment Receipts History -->
     <div class="mb-2">
@@ -495,6 +519,96 @@ function handleAddStudentSubmit(event) {
     return null;
   }
 }
+function openEditAdmissionModal(studentId) {
+  const student = StudentStore.getById(studentId);
+  if (!student) return showToast('Student record not found.', 'error');
+  const modal = document.getElementById('edit-admission-modal');
+  if (!modal) return showToast('Edit admission form is unavailable.', 'error');
+
+  const set = (id, value) => { const el = document.getElementById(id); if (el) el.value = value ?? ''; };
+  set('edit-admission-id', student.id);
+  set('edit-student-name', student.name);
+  set('edit-student-course', student.courseId);
+  set('edit-student-phone', student.phone);
+  set('edit-student-email', student.email);
+  set('edit-student-dob', student.dob);
+  set('edit-student-address', student.address);
+  set('edit-student-place', student.place);
+  set('edit-student-qualification', student.qualification);
+  set('edit-student-batch', student.batch);
+  set('edit-student-guardian-name', student.guardianName);
+  set('edit-student-guardian-phone', student.guardianPhone);
+  set('edit-student-guardian-relation', student.guardianRelation);
+  set('edit-student-admission-date', student.admissionDate);
+  set('edit-admission-reason', '');
+
+  if (typeof populateCourseDropdowns === 'function') {
+    const select = document.getElementById('edit-student-course');
+    if (select) {
+      populateCourseDropdowns();
+      // populateCourseDropdowns targets the new-admission select in older builds,
+      // so use Master Setup data directly for this edit selector.
+      const courses = (typeof BooksStore !== 'undefined' && typeof BooksStore.getCourses === 'function') ? BooksStore.getCourses() : [];
+      if (courses.length) select.innerHTML = courses.map(c => `<option value="${String(c.id).replace(/"/g, '&quot;')}">${String(c.title).replace(/</g,'&lt;')} (₹${Number(c.totalFee || 0).toLocaleString('en-IN')})</option>`).join('');
+      select.value = student.courseId || '';
+    }
+  }
+
+  modal.classList.remove('hidden');
+  modal.classList.add('flex');
+}
+
+function closeEditAdmissionModal() {
+  const modal = document.getElementById('edit-admission-modal');
+  if (!modal) return;
+  modal.classList.add('hidden');
+  modal.classList.remove('flex');
+}
+
+function handleEditAdmissionSubmit(event) {
+  if (event) event.preventDefault();
+  const get = id => document.getElementById(id);
+  const studentId = get('edit-admission-id')?.value || '';
+  const reason = get('edit-admission-reason')?.value.trim() || '';
+  if (!reason) return showToast('Please enter the reason for editing this admission.', 'error');
+
+  const changes = {
+    name: get('edit-student-name')?.value.trim() || '',
+    courseId: get('edit-student-course')?.value || '',
+    phone: get('edit-student-phone')?.value.trim() || '',
+    email: get('edit-student-email')?.value.trim() || '',
+    dob: get('edit-student-dob')?.value || '',
+    address: get('edit-student-address')?.value.trim() || '',
+    place: get('edit-student-place')?.value.trim() || '',
+    guardianName: get('edit-student-guardian-name')?.value.trim() || '',
+    guardianPhone: get('edit-student-guardian-phone')?.value.trim() || '',
+    guardianRelation: get('edit-student-guardian-relation')?.value.trim() || '',
+    qualification: get('edit-student-qualification')?.value.trim() || '',
+    batch: get('edit-student-batch')?.value.trim() || '',
+    admissionDate: get('edit-student-admission-date')?.value || ''
+  };
+
+  if (!changes.name) return showToast("Student name cannot be empty.", 'error');
+  if (!changes.phone) return showToast("Student phone cannot be empty.", 'error');
+
+  try {
+    const updated = StudentStore.updateAdmission(studentId, changes, reason);
+    if (typeof BooksStore !== 'undefined') {
+      BooksStore.data = BooksStore.data || {};
+      BooksStore.data.students = StudentStore.getAll();
+      if (typeof BooksStore.save === 'function') BooksStore.save();
+    }
+    closeEditAdmissionModal();
+    if (typeof refreshAdminTable === 'function') refreshAdminTable();
+    if (typeof refreshZohoDashboard === 'function') refreshZohoDashboard();
+    viewStudentProfile(updated.id);
+    showToast(`Admission ${updated.id} updated. Reason recorded.`, 'success');
+  } catch (err) {
+    console.error('Admission edit failed:', err);
+    showToast(`Admission could not be updated: ${err.message || err}`, 'error');
+  }
+}
+
 function openAddStudentModal() {
   const modal = document.getElementById("add-student-modal");
   const admissionDate = document.getElementById("new-student-admission-date");

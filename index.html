@@ -1480,6 +1480,62 @@
     </div>
   </div>
 
+  <!-- MODAL 6A: EDIT ADMISSION FORM WITH AUDIT REASON -->
+  <div id="edit-admission-modal" class="fixed inset-0 z-[60] hidden items-center justify-center p-4 glass-overlay">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[92vh] overflow-y-auto border border-slate-200">
+      <div class="bg-gradient-to-r from-[#005696] to-[#072a4a] text-white p-5 flex justify-between items-center">
+        <div>
+          <span class="text-[11px] font-bold text-[#C5A059] uppercase tracking-wider">Controlled Amendment</span>
+          <h3 class="text-lg font-black font-display">Edit Student Admission</h3>
+          <p class="text-[10px] text-white/70 mt-0.5">Every change requires a reason and is recorded in the admission history.</p>
+        </div>
+        <button type="button" onclick="closeEditAdmissionModal()" class="text-white/70 hover:text-white"><i class="fas fa-times"></i></button>
+      </div>
+      <form onsubmit="handleEditAdmissionSubmit(event)" class="p-6 space-y-4 text-xs">
+        <input type="hidden" id="edit-admission-id">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Student Full Name *</label>
+            <input id="edit-student-name" required class="w-full p-2.5 bg-white border border-slate-300 rounded-xl">
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Program / Course</label>
+            <select id="edit-student-course" class="w-full p-2.5 bg-white border border-slate-300 rounded-xl"></select>
+            <p class="text-[10px] text-amber-600 mt-1">Changing course applies the current Master Setup fee. Existing payments remain unchanged.</p>
+          </div>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div><label class="block font-semibold text-slate-700 mb-1">Contact Phone *</label><input id="edit-student-phone" required class="w-full p-2.5 bg-white border border-slate-300 rounded-xl"></div>
+          <div><label class="block font-semibold text-slate-700 mb-1">Email</label><input type="email" id="edit-student-email" class="w-full p-2.5 bg-white border border-slate-300 rounded-xl"></div>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div><label class="block font-semibold text-slate-700 mb-1">Date of Birth</label><input type="date" id="edit-student-dob" class="w-full p-2.5 bg-white border border-slate-300 rounded-xl"></div>
+          <div><label class="block font-semibold text-slate-700 mb-1">Place / City</label><input id="edit-student-place" class="w-full p-2.5 bg-white border border-slate-300 rounded-xl"></div>
+        </div>
+        <div><label class="block font-semibold text-slate-700 mb-1">Full Address</label><textarea id="edit-student-address" rows="2" class="w-full p-2.5 bg-white border border-slate-300 rounded-xl"></textarea></div>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div><label class="block font-semibold text-slate-700 mb-1">Guardian Name</label><input id="edit-student-guardian-name" class="w-full p-2.5 bg-white border border-slate-300 rounded-xl"></div>
+          <div><label class="block font-semibold text-slate-700 mb-1">Guardian Phone</label><input id="edit-student-guardian-phone" class="w-full p-2.5 bg-white border border-slate-300 rounded-xl"></div>
+          <div><label class="block font-semibold text-slate-700 mb-1">Relationship</label><input id="edit-student-guardian-relation" class="w-full p-2.5 bg-white border border-slate-300 rounded-xl"></div>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div><label class="block font-semibold text-slate-700 mb-1">Qualification</label><input id="edit-student-qualification" class="w-full p-2.5 bg-white border border-slate-300 rounded-xl"></div>
+          <div><label class="block font-semibold text-slate-700 mb-1">Batch</label><input id="edit-student-batch" class="w-full p-2.5 bg-white border border-slate-300 rounded-xl"></div>
+          <div><label class="block font-semibold text-slate-700 mb-1">Admission Date</label><input type="date" id="edit-student-admission-date" class="w-full p-2.5 bg-white border border-slate-300 rounded-xl"></div>
+        </div>
+        <div class="border-t border-slate-200 pt-4">
+          <label class="block font-bold text-slate-800 mb-1">Reason for Edit *</label>
+          <textarea id="edit-admission-reason" required rows="3" placeholder="Example: Corrected student's date of birth as per submitted certificate." class="w-full p-2.5 bg-amber-50 border border-amber-300 rounded-xl"></textarea>
+          <p class="text-[10px] text-slate-500 mt-1">The reason, date/time, changed fields and previous values are saved in the student's admission edit history.</p>
+        </div>
+        <div class="pt-3 flex justify-end gap-2 border-t border-slate-100">
+          <button type="button" onclick="closeEditAdmissionModal()" class="py-2.5 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl">Cancel</button>
+          <button type="submit" class="py-2.5 px-6 bg-[#005696] hover:bg-[#004375] text-white font-bold rounded-xl shadow"><i class="fas fa-save mr-1"></i> Save Admission Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- MODAL 6: STUDENT FULL PROFILE VIEW -->
   <div id="student-profile-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 glass-overlay">
     <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-slate-200">

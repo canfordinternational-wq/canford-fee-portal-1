@@ -721,6 +721,81 @@ const StudentStore = {
     return changed;
   },
 
+  // Update admission/master details with a mandatory audit reason.
+  // Financial history (paid amount, receipts, invoices) is intentionally not editable here.
+  updateAdmission(studentId, changes, reason) {
+    const auditReason = String(reason || '').trim();
+    if (!auditReason) throw new Error('A reason is required to edit an admission form.');
+
+    const students = this.getAll();
+    const student = students.find(s => s.id === studentId);
+    if (!student) throw new Error('Student not found.');
+
+    const allowed = [
+      'name','courseId','phone','email','dob','address','place',
+      'guardianName','guardianPhone','guardianRelation','qualification',
+      'batch','admissionDate'
+    ];
+    const before = {};
+    const after = {};
+    allowed.forEach(key => {
+      if (Object.prototype.hasOwnProperty.call(changes, key)) {
+        before[key] = student[key] ?? '';
+        after[key] = changes[key] ?? '';
+      }
+    });
+
+    // Resolve course against Master Setup if the course was changed.
+    if (Object.prototype.hasOwnProperty.call(changes, 'courseId')) {
+      const courses = (typeof BooksStore !== 'undefined' && typeof BooksStore.getCourses === 'function')
+        ? BooksStore.getCourses() : [];
+      const course = courses.find(c => String(c.id) === String(changes.courseId));
+      if (!course) throw new Error('Selected course was not found in Master Setup.');
+      before.courseName = student.courseName || '';
+      after.courseName = course.title || '';
+      student.courseId = course.id;
+      student.courseName = course.title;
+
+      // Course changes use the current Master Setup fee. Existing payments stay intact.
+      const masterFee = Number(course.totalFee);
+      if (Number.isFinite(masterFee) && masterFee >= 0) {
+        before.totalFee = Number(student.totalFee) || 0;
+        before.balanceFee = Number(student.balanceFee) || 0;
+        student.totalFee = masterFee;
+        student.balanceFee = Math.max(0, masterFee - (Number(student.paidFee) || 0));
+        student.feeStatus = student.balanceFee === 0 ? 'Paid' : ((Number(student.paidFee) || 0) > 0 ? 'Partial' : 'Pending');
+        after.totalFee = masterFee;
+        after.balanceFee = student.balanceFee;
+      }
+    }
+
+    allowed.forEach(key => {
+      if (key === 'courseId') return;
+      if (Object.prototype.hasOwnProperty.call(changes, key)) student[key] = changes[key] ?? '';
+    });
+
+    const changedFields = allowed.filter(key => String(before[key] ?? '') !== String(student[key] ?? ''));
+    if (Object.prototype.hasOwnProperty.call(changes, 'courseId') && String(before.courseName ?? '') !== String(student.courseName ?? '')) {
+      changedFields.push('course');
+    }
+    if (!changedFields.length) {
+      throw new Error('No changes were made to the admission form.');
+    }
+
+    if (!Array.isArray(student.admissionEditHistory)) student.admissionEditHistory = [];
+    student.admissionEditHistory.push({
+      id: `ADM-EDIT-${Date.now()}`,
+      editedAt: new Date().toISOString(),
+      reason: auditReason,
+      editedFields: changedFields,
+      before,
+      after: { ...after, ...Object.fromEntries(changedFields.map(k => [k, student[k]])) }
+    });
+
+    this.saveAll(students);
+    return student;
+  },
+
   addStudent(studentData) {
     const students = this.getAll();
     const newId = `CAN-2025-${String(students.length + 1).padStart(3, '0')}`;
