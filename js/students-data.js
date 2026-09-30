@@ -626,6 +626,40 @@ const StudentStore = {
     );
   },
 
+  applyMasterFeeToCourse(courseId, newFee) {
+    const fee = Number(newFee);
+    if (!courseId || !Number.isFinite(fee) || fee < 0) return 0;
+
+    const students = this.getAll();
+    let changed = 0;
+    students.forEach(student => {
+      if (student.courseId !== courseId) return;
+
+      const paid = Math.max(0, Number(student.paidFee) || 0);
+      student.totalFee = fee;
+      student.balanceFee = Math.max(0, fee - paid);
+      student.feeStatus = student.balanceFee === 0 ? "Paid" : (paid > 0 ? "Partial" : "Pending");
+
+      // Keep future installment amounts consistent with the new standard fee.
+      if (Array.isArray(student.installments) && student.installments.length) {
+        const pending = student.installments.filter(i => i.status !== "Paid");
+        const pendingTotal = pending.reduce((sum, i) => sum + (Number(i.amount) || 0), 0);
+        if (pending.length) {
+          let remaining = student.balanceFee;
+          pending.forEach((inst, idx) => {
+            const amount = idx === pending.length - 1 ? remaining : Math.round(student.balanceFee / pending.length);
+            inst.amount = Math.max(0, amount);
+            remaining = Math.max(0, remaining - inst.amount);
+          });
+        }
+      }
+      changed++;
+    });
+
+    if (changed) this.saveAll(students);
+    return changed;
+  },
+
   addStudent(studentData) {
     const students = this.getAll();
     const newId = `CAN-2025-${String(students.length + 1).padStart(3, '0')}`;
@@ -643,7 +677,7 @@ const StudentStore = {
       ]
     };
 
-    const totalFee = Number(studentData.totalFee) || course.totalFee;
+    const totalFee = Number(course.totalFee) || Number(studentData.totalFee) || 50000;
     const initialPayment = Number(studentData.initialPayment) || 0;
 
     // Generate installment milestones

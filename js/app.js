@@ -415,8 +415,7 @@ function submitNewIncome(event) {
   event.preventDefault();
   try {
     const type = document.getElementById("new-income-type").value;
-    const entry = BooksStore.addIncome({
-      type,
+    const payload = {
       date: document.getElementById("new-income-date").value,
       category: document.getElementById("new-income-category").value,
       particulars: document.getElementById("new-income-particulars").value.trim(),
@@ -424,7 +423,10 @@ function submitNewIncome(event) {
       receivedThrough: document.getElementById("new-income-mode").value,
       reference: document.getElementById("new-income-ref").value.trim(),
       notes: document.getElementById("new-income-notes").value.trim()
-    });
+    };
+    const entry = type === "capital"
+      ? BooksStore.addCapitalIntroduced(payload)
+      : BooksStore.addIncome({ ...payload, type: "income" });
     closeAddIncomeModal();
     if (typeof renderIncomeList === "function") renderIncomeList();
     refreshZohoDashboard();

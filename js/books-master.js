@@ -153,7 +153,7 @@ function submitEditCourse(event) {
   const desc = document.getElementById("edit-course-desc").value;
 
   try {
-    BooksStore.updateCourse(id, {
+    const updatedCourse = BooksStore.updateCourse(id, {
       title,
       category,
       duration,
@@ -167,7 +167,9 @@ function submitEditCourse(event) {
     closeEditCourseModal();
     renderCoursesMaster();
     populateCourseDropdowns();
-    showToast(`Course "${title}" updated successfully!`, "success");
+    if (typeof refreshAdminTable === 'function') refreshAdminTable();
+    if (typeof refreshZohoDashboard === 'function') refreshZohoDashboard();
+    showToast(`Course "${title}" updated. Standard fee ₹${Number(updatedCourse.totalFee).toLocaleString('en-IN')} is now reflected in student balances and new billing.`, "success");
   } catch (err) {
     showToast(err.message, "error");
   }

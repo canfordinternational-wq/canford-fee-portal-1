@@ -709,13 +709,23 @@ const BooksStore = {
   updateCourse(id, courseData) {
     const courses = this.getCourses();
     const idx = courses.findIndex(c => c.id === id);
-    if (idx !== -1) {
-      courses[idx] = { ...courses[idx], ...courseData };
-      this.data.courses = courses;
-      this.save();
-      return courses[idx];
+    if (idx === -1) throw new Error("Course not found");
+
+    const oldFee = Number(courses[idx].totalFee) || 0;
+    courses[idx] = { ...courses[idx], ...courseData, totalFee: Number(courseData.totalFee) || 0 };
+    this.data.courses = courses;
+
+    // Master Setup is the source of truth for the standard fee. Apply a changed
+    // standard fee to existing students enrolled in this course as well, so the
+    // fee shown in Students, balances and billing stays synchronized.
+    const newFee = Number(courses[idx].totalFee) || 0;
+    if (newFee !== oldFee && typeof StudentStore !== 'undefined' && typeof StudentStore.applyMasterFeeToCourse === 'function') {
+      StudentStore.applyMasterFeeToCourse(id, newFee);
+      this.data.students = StudentStore.getAll();
     }
-    throw new Error("Course not found");
+
+    this.save();
+    return courses[idx];
   },
 
   deleteCourse(id) {
@@ -762,23 +772,29 @@ const BooksStore = {
   addIncome(entry) {
     const amount = Number(entry.amount);
     if (!Number.isFinite(amount) || amount <= 0) throw new Error("Enter a valid positive amount.");
-    const type = entry.type === "capital" ? "capital" : "income";
-    const id = `${type === "capital" ? "CAP" : "INC"}-${new Date().getFullYear()}-${String(this.getIncomes().length + 1).padStart(3, "0")}`;
+    const type = String(entry.type || "income").toLowerCase() === "capital" ? "capital" : "income";
+    this.data.incomes = Array.isArray(this.data.incomes) ? this.data.incomes : [];
+    const prefix = type === "capital" ? "CAP" : "INC";
+    const id = `${prefix}-${new Date().getFullYear()}-${String(this.data.incomes.length + 1).padStart(3, "0")}-${Date.now().toString().slice(-4)}`;
     const newEntry = {
       id,
       date: entry.date || new Date().toISOString().split("T")[0],
       type,
       category: type === "capital" ? "Capital Introduced" : (entry.category || "Indirect Income"),
-      particulars: entry.particulars || (type === "capital" ? "Capital Introduced" : "Other Income"),
+      particulars: String(entry.particulars || (type === "capital" ? "Capital Introduced" : "Other Income")).trim(),
       amount,
-      receivedThrough: entry.receivedThrough || "Bank Transfer",
+      receivedThrough: entry.receivedThrough || "Bank Transfer (NEFT/RTGS)",
       reference: entry.reference || `REF-${Date.now().toString().slice(-6)}`,
       notes: entry.notes || ""
     };
-    this.data.incomes = this.data.incomes || [];
+    if (!newEntry.particulars) throw new Error("Enter particulars for this entry.");
     this.data.incomes.unshift(newEntry);
     this.save();
     return newEntry;
+  },
+
+  addCapitalIntroduced(entry) {
+    return this.addIncome({ ...entry, type: "capital", category: "Capital Introduced", particulars: entry.particulars || "Capital Introduced" });
   },
 
   deleteIncome(id) {

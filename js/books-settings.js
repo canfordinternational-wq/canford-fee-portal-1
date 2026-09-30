@@ -119,7 +119,7 @@ function handleSignatureFileUpload(event) {
     const org = BooksStore.getOrg();
     org.digitalSign = org.digitalSign || {};
     org.digitalSign.image = dataUrl;
-    BooksStore.updateOrg({ digitalSign: org.digitalSign });
+    BooksStore.updateDigitalSign(org.digitalSign);
 
     const width = Number(document.getElementById("set-sign-width")?.value) || 180;
     const height = Number(document.getElementById("set-sign-height")?.value) || 60;
@@ -319,11 +319,26 @@ function resetWhatsAppTemplateDefault() {
   }
 }
 
-function updateSignaturePreviewSize() {
+function updateSignaturePreviewSize(saveNow = true) {
+  const width = Math.max(40, Math.min(600, Number(document.getElementById("set-sign-width")?.value) || 180));
+  const height = Math.max(20, Math.min(250, Number(document.getElementById("set-sign-height")?.value) || 60));
+  const widthInput = document.getElementById("set-sign-width");
+  const heightInput = document.getElementById("set-sign-height");
+  if (widthInput) widthInput.value = width;
+  if (heightInput) heightInput.value = height;
+
   const img = document.querySelector("#set-sign-preview img");
-  if (!img) return;
-  const width = Number(document.getElementById("set-sign-width")?.value) || 180;
-  const height = Number(document.getElementById("set-sign-height")?.value) || 60;
-  img.style.width = `${width}px`;
-  img.style.height = `${height}px`;
+  if (img) {
+    img.style.width = `${width}px`;
+    img.style.height = `${height}px`;
+    img.setAttribute("width", String(width));
+    img.setAttribute("height", String(height));
+  }
+
+  if (saveNow && typeof BooksStore !== "undefined") {
+    const org = BooksStore.getOrg();
+    const sign = { ...(org.digitalSign || {}), width, height };
+    BooksStore.updateDigitalSign(sign);
+  }
 }
+
