@@ -10,26 +10,133 @@ function printCurrentInvoice() {
     return;
   }
 
-  const oldRoot = document.getElementById('print-root');
-  if (oldRoot) oldRoot.remove();
+  // Open a completely separate print document. This guarantees that the PDF
+  // contains ONLY the invoice and never the Canford Books dashboard, sidebar,
+  // buttons, menus, or any other page information.
+  const printWindow = window.open('', '_blank', 'width=900,height=1200');
+  if (!printWindow) {
+    alert('Please allow pop-ups for Canford Books to print the invoice.');
+    return;
+  }
 
-  const root = document.createElement('div');
-  root.id = 'print-root';
-  root.innerHTML = source.outerHTML;
-  document.body.appendChild(root);
+  const clone = source.cloneNode(true);
 
-  const cleanup = () => {
-    setTimeout(() => root.remove(), 250);
-    window.removeEventListener('afterprint', cleanup);
-  };
-  window.addEventListener('afterprint', cleanup);
-
-  // Give the browser one paint cycle so the cloned invoice is fully laid out.
-  requestAnimationFrame(() => {
-    requestAnimationFrame(() => {
-      window.print();
-    });
+  // Convert relative image paths to absolute URLs so logos/signatures/QR images
+  // continue to load inside the standalone print window.
+  clone.querySelectorAll('img[src]').forEach(img => {
+    const src = img.getAttribute('src');
+    if (src && !src.startsWith('data:') && !src.startsWith('blob:')) {
+      img.setAttribute('src', new URL(src, window.location.href).href);
+    }
   });
+
+  // Copy the active styles from the application. Tailwind's runtime-generated
+  // <style> tag is included when present, so the invoice keeps the same layout.
+  const styleTags = Array.from(document.querySelectorAll('style'))
+    .map(style => style.outerHTML)
+    .join('\n');
+
+  const stylesheetLinks = Array.from(document.querySelectorAll('link[rel="stylesheet"]'))
+    .map(link => {
+      const href = link.href || link.getAttribute('href');
+      return href ? `<link rel="stylesheet" href="${href}">` : '';
+    })
+    .join('\n');
+
+  printWindow.document.open();
+  printWindow.document.write(`<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${source.querySelector('strong')?.textContent || 'Canford Tax Invoice'}</title>
+  ${stylesheetLinks}
+  ${styleTags}
+  <style>
+    /* ================================================================
+       CANFORD BOOKS - INVOICE PDF ONLY
+       The print window contains one element: #invoice-sheet.
+       ================================================================ */
+    html, body {
+      width: 210mm !important;
+      min-height: 297mm !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      background: #fff !important;
+      overflow: visible !important;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+
+    body {
+      display: block !important;
+      color: #0f172a !important;
+    }
+
+    #invoice-sheet {
+      display: block !important;
+      width: 190mm !important;
+      min-height: 277mm !important;
+      max-width: none !important;
+      margin: 0 auto !important;
+      padding: 10mm !important;
+      box-sizing: border-box !important;
+      background: #fff !important;
+      border: 1px solid #d7dce2 !important;
+      border-radius: 0 !important;
+      box-shadow: none !important;
+      overflow: visible !important;
+      position: relative !important;
+    }
+
+    #invoice-sheet table {
+      width: 100% !important;
+      border-collapse: collapse !important;
+    }
+
+    #invoice-sheet thead { display: table-header-group !important; }
+    #invoice-sheet tfoot { display: table-footer-group !important; }
+    #invoice-sheet tr { page-break-inside: avoid !important; }
+    #invoice-sheet img { max-width: 100%; }
+
+    @page {
+      size: A4 portrait;
+      margin: 10mm;
+    }
+  </style>
+</head>
+<body>
+  ${clone.outerHTML}
+</body>
+</html>`);
+  printWindow.document.close();
+
+  const doPrint = () => {
+    setTimeout(() => {
+      printWindow.focus();
+      printWindow.print();
+    }, 250);
+  };
+
+  // Wait for fonts and invoice images before opening the print dialog.
+  const images = Array.from(printWindow.document.images);
+  Promise.all(images.map(img => {
+    if (img.complete) return Promise.resolve();
+    return new Promise(resolve => {
+      img.onload = resolve;
+      img.onerror = resolve;
+    });
+  })).then(() => {
+    if (printWindow.document.fonts?.ready) {
+      printWindow.document.fonts.ready.then(doPrint).catch(doPrint);
+    } else {
+      doPrint();
+    }
+  });
+
+  printWindow.onafterprint = () => {
+    setTimeout(() => printWindow.close(), 300);
+  };
 }
 
 // ============================================================================
