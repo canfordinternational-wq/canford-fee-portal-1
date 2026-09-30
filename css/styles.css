@@ -138,31 +138,46 @@ body {
 
 /* ==========================================================================
    CANFORD BOOKS - PROFESSIONAL A4 INVOICE PRINT (ZOHO-STYLE)
-   Print only the invoice as a clean, edge-to-edge A4 document. The on-screen
-   card remains unchanged; print output gets its own paper layout.
+   Uses a dedicated #print-root so browser print engines do not inherit the
+   dashboard layout, flex containers, or visibility rules.
    ========================================================================== */
 @media print {
   html, body {
-    width: 210mm !important;
-    min-height: 297mm !important;
-    background: #fff !important;
+    width: 100% !important;
+    min-height: 0 !important;
     margin: 0 !important;
     padding: 0 !important;
+    background: #fff !important;
+    overflow: visible !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
 
-  body * { visibility: hidden !important; }
-  #invoice-sheet, #invoice-sheet * { visibility: visible !important; }
+  body > *:not(#print-root) {
+    display: none !important;
+  }
 
-  #invoice-sheet {
-    position: relative !important;
-    left: auto !important;
-    top: auto !important;
+  #print-root {
+    display: block !important;
+    visibility: visible !important;
     width: 190mm !important;
-    min-height: 277mm !important;
-    max-width: none !important;
+    max-width: 190mm !important;
     margin: 0 auto !important;
+    padding: 0 !important;
+    background: #fff !important;
+  }
+
+  #print-root * {
+    visibility: visible !important;
+  }
+
+  #print-root #invoice-sheet {
+    display: block !important;
+    position: static !important;
+    width: 190mm !important;
+    max-width: 190mm !important;
+    min-height: 277mm !important;
+    margin: 0 !important;
     padding: 10mm !important;
     box-sizing: border-box !important;
     background: #fff !important;
@@ -170,24 +185,36 @@ body {
     border-radius: 0 !important;
     box-shadow: none !important;
     overflow: visible !important;
-    font-size: 10pt !important;
+    page-break-inside: avoid !important;
   }
 
-  /* Remove screen-only decorative spacing while keeping a professional hierarchy. */
-  #invoice-sheet .rounded-xl,
-  #invoice-sheet .rounded-2xl,
-  #invoice-sheet .rounded-lg { border-radius: 2px !important; }
+  #print-root .rounded-xl,
+  #print-root .rounded-2xl,
+  #print-root .rounded-lg {
+    border-radius: 2px !important;
+  }
 
-  #invoice-sheet table { page-break-inside: auto !important; }
-  #invoice-sheet tr { page-break-inside: avoid !important; page-break-after: auto !important; }
-  #invoice-sheet thead { display: table-header-group !important; }
-  #invoice-sheet tfoot { display: table-footer-group !important; }
+  #print-root table {
+    width: 100% !important;
+    page-break-inside: auto !important;
+  }
 
-  /* Keep the invoice footer together whenever possible. */
-  #invoice-sheet > div:last-child { page-break-inside: avoid !important; }
+  #print-root tr {
+    page-break-inside: avoid !important;
+    page-break-after: auto !important;
+  }
+
+  #print-root thead { display: table-header-group !important; }
+  #print-root tfoot { display: table-footer-group !important; }
+  #print-root > #invoice-sheet > div:last-child { page-break-inside: avoid !important; }
 
   @page {
     size: A4 portrait;
     margin: 10mm;
   }
+}
+
+/* Never show the print-only clone during normal use. */
+#print-root {
+  display: none;
 }

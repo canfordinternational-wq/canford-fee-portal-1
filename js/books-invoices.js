@@ -1,3 +1,37 @@
+
+/**
+ * Print the currently displayed invoice using a dedicated print-only root.
+ * This avoids browser print engines inheriting the dashboard/sidebar layout.
+ */
+function printCurrentInvoice() {
+  const source = document.getElementById('invoice-sheet');
+  if (!source) {
+    alert('Please open an invoice before printing.');
+    return;
+  }
+
+  const oldRoot = document.getElementById('print-root');
+  if (oldRoot) oldRoot.remove();
+
+  const root = document.createElement('div');
+  root.id = 'print-root';
+  root.innerHTML = source.outerHTML;
+  document.body.appendChild(root);
+
+  const cleanup = () => {
+    setTimeout(() => root.remove(), 250);
+    window.removeEventListener('afterprint', cleanup);
+  };
+  window.addEventListener('afterprint', cleanup);
+
+  // Give the browser one paint cycle so the cloned invoice is fully laid out.
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      window.print();
+    });
+  });
+}
+
 // ============================================================================
 // CANFORD BOOKS - INVOICE MANAGEMENT MODULE (ZOHO BOOKS SPLIT-PANE UI)
 // ============================================================================
@@ -166,7 +200,7 @@ function renderInvoiceDetail(invId) {
           <i class="fas fa-edit"></i> Edit Invoice
         </button>
 
-        <button onclick="window.print()" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold transition flex items-center gap-1.5">
+        <button onclick="printCurrentInvoice()" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold transition flex items-center gap-1.5">
           <i class="fas fa-print"></i> Print / PDF
         </button>
 
