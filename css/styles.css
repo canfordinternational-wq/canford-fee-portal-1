@@ -135,3 +135,59 @@ body {
     margin: 10mm;
   }
 }
+
+/* ==========================================================================
+   CANFORD BOOKS - PROFESSIONAL A4 INVOICE PRINT (ZOHO-STYLE)
+   Print only the invoice as a clean, edge-to-edge A4 document. The on-screen
+   card remains unchanged; print output gets its own paper layout.
+   ========================================================================== */
+@media print {
+  html, body {
+    width: 210mm !important;
+    min-height: 297mm !important;
+    background: #fff !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  body * { visibility: hidden !important; }
+  #invoice-sheet, #invoice-sheet * { visibility: visible !important; }
+
+  #invoice-sheet {
+    position: relative !important;
+    left: auto !important;
+    top: auto !important;
+    width: 190mm !important;
+    min-height: 277mm !important;
+    max-width: none !important;
+    margin: 0 auto !important;
+    padding: 10mm !important;
+    box-sizing: border-box !important;
+    background: #fff !important;
+    border: 1px solid #d7dce2 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    overflow: visible !important;
+    font-size: 10pt !important;
+  }
+
+  /* Remove screen-only decorative spacing while keeping a professional hierarchy. */
+  #invoice-sheet .rounded-xl,
+  #invoice-sheet .rounded-2xl,
+  #invoice-sheet .rounded-lg { border-radius: 2px !important; }
+
+  #invoice-sheet table { page-break-inside: auto !important; }
+  #invoice-sheet tr { page-break-inside: avoid !important; page-break-after: auto !important; }
+  #invoice-sheet thead { display: table-header-group !important; }
+  #invoice-sheet tfoot { display: table-footer-group !important; }
+
+  /* Keep the invoice footer together whenever possible. */
+  #invoice-sheet > div:last-child { page-break-inside: avoid !important; }
+
+  @page {
+    size: A4 portrait;
+    margin: 10mm;
+  }
+}
