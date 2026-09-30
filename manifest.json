@@ -1,8 +1,8 @@
 {
-  "name": "Canford Books - Institutional Accounting & Student Billing",
-  "short_name": "Canford Books",
+  "name": "Canford Fee Portal",
+  "short_name": "Canford",
   "description": "Canford International Fee Management Software",
-  "start_url": "./",
+  "start_url": "/",
   "display": "standalone",
   "background_color": "#0a1628",
   "theme_color": "#0a1628",
