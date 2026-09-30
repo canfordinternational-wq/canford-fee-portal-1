@@ -629,7 +629,12 @@ const StudentStore = {
   addStudent(studentData) {
     const students = this.getAll();
     const newId = `CAN-2025-${String(students.length + 1).padStart(3, '0')}`;
-    const course = CANFORD_COURSES[studentData.courseId] || {
+    // Master Setup is the source of truth for the current standard fee/title.
+    // This keeps new admissions synchronized with any fee changes made in Master Setup.
+    const masterCourse = (typeof BooksStore !== 'undefined' && typeof BooksStore.getCourses === 'function')
+      ? BooksStore.getCourses().find(c => c.id === studentData.courseId)
+      : null;
+    const course = masterCourse || CANFORD_COURSES[studentData.courseId] || {
       id: "custom",
       title: studentData.courseName || "Custom Course",
       totalFee: Number(studentData.totalFee) || 50000,
@@ -695,8 +700,13 @@ const StudentStore = {
       courseName: course.title,
       phone: studentData.phone,
       email: studentData.email || "",
+      dob: studentData.dob || "",
+      address: studentData.address || "",
       place: studentData.place || "Calicut",
-      qualification: studentData.qualification || "Degree",
+      guardianName: studentData.guardianName || "",
+      guardianPhone: studentData.guardianPhone || "",
+      guardianRelation: studentData.guardianRelation || "",
+      qualification: studentData.qualification || "",
       admissionDate: studentData.admissionDate || today.toISOString().split('T')[0],
       batch: studentData.batch || "Regular 2025",
       status: "Active",

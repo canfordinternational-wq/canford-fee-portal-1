@@ -283,19 +283,45 @@ function viewStudentProfile(studentId) {
     <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-slate-50 p-3 rounded-xl mb-4 text-xs">
       <div>
         <span class="text-slate-400 font-medium">Contact Phone</span>
-        <p class="font-bold text-slate-800 mt-0.5">+91 ${student.phone}</p>
+        <p class="font-bold text-slate-800 mt-0.5">+91 ${student.phone || 'N/A'}</p>
+      </div>
+      <div>
+        <span class="text-slate-400 font-medium">Date of Birth</span>
+        <p class="font-bold text-slate-800 mt-0.5">${student.dob || 'N/A'}</p>
       </div>
       <div>
         <span class="text-slate-400 font-medium">Email Address</span>
         <p class="font-bold text-slate-800 mt-0.5 truncate">${student.email || 'N/A'}</p>
       </div>
       <div>
-        <span class="text-slate-400 font-medium">Location</span>
-        <p class="font-bold text-slate-800 mt-0.5">${student.place || 'Calicut'}</p>
+        <span class="text-slate-400 font-medium">Qualification</span>
+        <p class="font-bold text-slate-800 mt-0.5">${student.qualification || 'N/A'}</p>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-slate-50 p-3 rounded-xl mb-4 text-xs">
+      <div>
+        <span class="text-slate-400 font-medium">Address</span>
+        <p class="font-bold text-slate-800 mt-0.5 whitespace-pre-line">${student.address || student.place || 'N/A'}</p>
       </div>
       <div>
-        <span class="text-slate-400 font-medium">Qualification</span>
-        <p class="font-bold text-slate-800 mt-0.5">${student.qualification || 'Degree'}</p>
+        <span class="text-slate-400 font-medium">Place / City</span>
+        <p class="font-bold text-slate-800 mt-0.5">${student.place || 'N/A'}</p>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-amber-50 border border-amber-100 p-3 rounded-xl mb-4 text-xs">
+      <div>
+        <span class="text-amber-700 font-medium">Guardian Name</span>
+        <p class="font-bold text-slate-800 mt-0.5">${student.guardianName || 'N/A'}</p>
+      </div>
+      <div>
+        <span class="text-amber-700 font-medium">Guardian Phone</span>
+        <p class="font-bold text-slate-800 mt-0.5">${student.guardianPhone ? '+91 ' + student.guardianPhone : 'N/A'}</p>
+      </div>
+      <div>
+        <span class="text-amber-700 font-medium">Relationship</span>
+        <p class="font-bold text-slate-800 mt-0.5">${student.guardianRelation || 'N/A'}</p>
       </div>
     </div>
 
@@ -385,13 +411,19 @@ function sendWhatsAppReminder(studentId) {
 function handleAddStudentSubmit(event) {
   event.preventDefault();
 
-  const name = document.getElementById("new-student-name").value;
+  const name = document.getElementById("new-student-name").value.trim();
   const courseId = document.getElementById("new-student-course").value;
-  const phone = document.getElementById("new-student-phone").value;
-  const email = document.getElementById("new-student-email").value;
-  const place = document.getElementById("new-student-place").value;
-  const qualification = document.getElementById("new-student-qualification").value;
-  const batch = document.getElementById("new-student-batch").value;
+  const phone = document.getElementById("new-student-phone").value.trim();
+  const email = document.getElementById("new-student-email").value.trim();
+  const dob = document.getElementById("new-student-dob").value;
+  const address = document.getElementById("new-student-address").value.trim();
+  const place = document.getElementById("new-student-place").value.trim();
+  const guardianName = document.getElementById("new-student-guardian-name").value.trim();
+  const guardianPhone = document.getElementById("new-student-guardian-phone").value.trim();
+  const guardianRelation = document.getElementById("new-student-guardian-relation").value.trim();
+  const qualification = document.getElementById("new-student-qualification").value.trim();
+  const batch = document.getElementById("new-student-batch").value.trim();
+  const admissionDate = document.getElementById("new-student-admission-date").value;
   const initialPayment = Number(document.getElementById("new-student-initial-pay").value) || 0;
   const paymentMode = document.getElementById("new-student-pay-mode").value;
 
@@ -401,9 +433,15 @@ function handleAddStudentSubmit(event) {
       courseId,
       phone,
       email,
+      dob,
+      address,
       place,
+      guardianName,
+      guardianPhone,
+      guardianRelation,
       qualification,
       batch,
+      admissionDate,
       initialPayment,
       paymentMode
     });
@@ -437,6 +475,12 @@ function handleAddStudentSubmit(event) {
 
 function openAddStudentModal() {
   const modal = document.getElementById("add-student-modal");
+  const admissionDate = document.getElementById("new-student-admission-date");
+  if (admissionDate && !admissionDate.value) {
+    admissionDate.value = new Date().toISOString().split('T')[0];
+  }
+  if (typeof populateCourseDropdowns === 'function') populateCourseDropdowns();
+  if (typeof populatePaymentModeDropdowns === 'function') populatePaymentModeDropdowns();
   modal.classList.remove("hidden");
   modal.classList.add("flex");
 }
@@ -450,7 +494,7 @@ function closeAddStudentModal() {
 // CSV Export
 function exportStudentsCSV() {
   const students = StudentStore.getAll();
-  const headers = ["Student ID", "Full Name", "Course", "Contact Phone", "Email", "Location", "Batch", "Total Fee (INR)", "Paid Fee (INR)", "Balance Fee (INR)", "Fee Status", "Next Due Date", "Admission Date"];
+  const headers = ["Student ID", "Full Name", "Course", "Contact Phone", "Email", "Date of Birth", "Address", "Location", "Guardian Name", "Guardian Phone", "Guardian Relationship", "Qualification", "Batch", "Total Fee (INR)", "Paid Fee (INR)", "Balance Fee (INR)", "Fee Status", "Next Due Date", "Admission Date"];
 
   const rows = students.map(s => [
     `"${s.id}"`,
@@ -458,7 +502,13 @@ function exportStudentsCSV() {
     `"${s.courseName}"`,
     `"${s.phone}"`,
     `"${s.email || ''}"`,
+    `"${s.dob || ''}"`,
+    `"${s.address || ''}"`,
     `"${s.place || ''}"`,
+    `"${s.guardianName || ''}"`,
+    `"${s.guardianPhone || ''}"`,
+    `"${s.guardianRelation || ''}"`,
+    `"${s.qualification || ''}"`,
     `"${s.batch || ''}"`,
     s.totalFee,
     s.paidFee,
