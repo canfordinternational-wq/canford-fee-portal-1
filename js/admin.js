@@ -6,6 +6,23 @@ let currentFilterCourse = "all";
 let currentFilterStatus = "all";
 let currentSearchTerm = "";
 
+// Keep the Student Directory synchronized whenever Master Setup changes.
+window.addEventListener("canford-books-data-changed", () => {
+  if (typeof StudentStore !== "undefined" && typeof StudentStore.syncFeesFromMaster === "function") {
+    StudentStore.syncFeesFromMaster();
+  }
+  if (typeof refreshAdminTable === "function") refreshAdminTable();
+});
+
+window.addEventListener("storage", (event) => {
+  if (event.key === "canford_zoho_books_v1" || event.key === "canford_students_v1") {
+    if (typeof StudentStore !== "undefined" && typeof StudentStore.syncFeesFromMaster === "function") {
+      StudentStore.syncFeesFromMaster();
+    }
+    if (typeof refreshAdminTable === "function") refreshAdminTable();
+  }
+});
+
 // Refresh KPI Cards
 function updateAdminKPIs() {
   const students = StudentStore.getAll();

@@ -634,12 +634,17 @@ const StudentStore = {
     if (typeof BooksStore === 'undefined' || typeof BooksStore.getCourses !== 'function') return 0;
 
     const courses = BooksStore.getCourses() || [];
-    const courseMap = new Map(courses.map(c => [String(c.id), c]));
+    const normalize = value => String(value ?? '').trim().toLowerCase();
+    const courseById = new Map(courses.map(c => [normalize(c.id), c]));
+    const courseByTitle = new Map(courses.map(c => [normalize(c.title), c]));
     const students = this.getAll();
     let changed = 0;
 
     students.forEach(student => {
-      const course = courseMap.get(String(student.courseId));
+      // Older admissions may have a course id saved in a different format, or
+      // only have the course name. Match by ID first, then by course title.
+      const course = courseById.get(normalize(student.courseId)) ||
+                     courseByTitle.get(normalize(student.courseName));
       if (!course) return;
 
       const masterFee = Number(course.totalFee);
@@ -650,11 +655,17 @@ const StudentStore = {
       const newBalance = Math.max(0, masterFee - paid);
       const newStatus = newBalance === 0 ? 'Paid' : (paid > 0 ? 'Partial' : 'Pending');
 
-      if (oldFee !== masterFee || Number(student.balanceFee) !== newBalance || student.courseName !== course.title || student.feeStatus !== newStatus) {
+      // Also repair the course id/name so future fee changes continue to sync.
+      const idChanged = normalize(student.courseId) !== normalize(course.id);
+      const nameChanged = student.courseName !== course.title;
+
+      if (oldFee !== masterFee || Number(student.balanceFee) !== newBalance ||
+          student.feeStatus !== newStatus || idChanged || nameChanged) {
+        student.courseId = course.id;
+        student.courseName = course.title;
         student.totalFee = masterFee;
         student.balanceFee = newBalance;
         student.feeStatus = newStatus;
-        student.courseName = course.title;
         changed++;
       }
     });
@@ -667,24 +678,35 @@ const StudentStore = {
     const fee = Number(newFee);
     if (!courseId || !Number.isFinite(fee) || fee < 0) return 0;
 
+    const courses = (typeof BooksStore !== 'undefined' && typeof BooksStore.getCourses === 'function')
+      ? BooksStore.getCourses() : [];
+    const normalize = value => String(value ?? '').trim().toLowerCase();
+    const targetId = normalize(courseId);
+    const targetCourse = courses.find(c => normalize(c.id) === targetId);
+    const targetTitle = targetCourse ? normalize(targetCourse.title) : '';
+
     const students = this.getAll();
     let changed = 0;
     students.forEach(student => {
-      if (student.courseId !== courseId) return;
+      const sameId = normalize(student.courseId) === targetId;
+      const sameTitle = targetTitle && normalize(student.courseName) === targetTitle;
+      if (!sameId && !sameTitle) return;
 
       const paid = Math.max(0, Number(student.paidFee) || 0);
+      student.courseId = targetCourse ? targetCourse.id : courseId;
+      if (targetCourse) student.courseName = targetCourse.title;
       student.totalFee = fee;
       student.balanceFee = Math.max(0, fee - paid);
       student.feeStatus = student.balanceFee === 0 ? "Paid" : (paid > 0 ? "Partial" : "Pending");
 
-      // Keep future installment amounts consistent with the new standard fee.
+      // Keep future unpaid installments consistent with the new standard fee.
       if (Array.isArray(student.installments) && student.installments.length) {
         const pending = student.installments.filter(i => i.status !== "Paid");
-        const pendingTotal = pending.reduce((sum, i) => sum + (Number(i.amount) || 0), 0);
         if (pending.length) {
           let remaining = student.balanceFee;
+          const base = Math.floor(student.balanceFee / pending.length);
           pending.forEach((inst, idx) => {
-            const amount = idx === pending.length - 1 ? remaining : Math.round(student.balanceFee / pending.length);
+            const amount = idx === pending.length - 1 ? remaining : base;
             inst.amount = Math.max(0, amount);
             remaining = Math.max(0, remaining - inst.amount);
           });

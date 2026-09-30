@@ -720,12 +720,21 @@ const BooksStore = {
     // standard fee to existing students enrolled in this course as well, so the
     // fee shown in Students, balances and billing stays synchronized.
     const newFee = Number(courses[idx].totalFee) || 0;
-    if (newFee !== oldFee && typeof StudentStore !== 'undefined' && typeof StudentStore.applyMasterFeeToCourse === 'function') {
+    if (typeof StudentStore !== 'undefined' && typeof StudentStore.applyMasterFeeToCourse === 'function') {
+      // Always reconcile, not only when the numeric fee changed. This also
+      // repairs older student records whose course id/name was stored differently.
       StudentStore.applyMasterFeeToCourse(id, newFee);
       this.data.students = StudentStore.getAll();
     }
 
     this.save();
+
+    // A final reconciliation after the Master Setup has been persisted makes
+    // the updated fee immediately authoritative for the Student Directory.
+    if (typeof StudentStore !== 'undefined' && typeof StudentStore.syncFeesFromMaster === 'function') {
+      StudentStore.syncFeesFromMaster();
+      this.data.students = StudentStore.getAll();
+    }
     return courses[idx];
   },
 
