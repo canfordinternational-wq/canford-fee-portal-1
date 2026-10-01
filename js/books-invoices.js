@@ -234,22 +234,7 @@ function renderInvoiceDetail(invId) {
     }
   }
 
-  // Edit History / Audit Trail (Req 3)
-  const auditHtml = (inv.editHistory && inv.editHistory.length > 0) ? `
-    <div class="bg-amber-50 border border-amber-200 rounded-xl p-3 mb-6 text-xs text-amber-900">
-      <div class="flex items-center gap-1.5 font-bold mb-1">
-        <i class="fas fa-history text-amber-600"></i>
-        <span>Audit Revision History:</span>
-      </div>
-      <div class="space-y-1">
-        ${inv.editHistory.map(h => `
-          <div class="text-[11px] text-amber-800">
-            • <strong>${h.dateFormatted || h.timestamp}</strong>: <em>"${h.reason}"</em> (Previous Total: ₹${Number(h.previousTotal).toLocaleString('en-IN')})
-          </div>
-        `).join('')}
-      </div>
-    </div>
-  ` : '';
+  // Audit history is retained in the invoice data for compliance/edit tracking, but is not displayed on the invoice.
 
   container.innerHTML = `
     <!-- Top Action Bar (Zoho Style) -->
@@ -404,9 +389,6 @@ function renderInvoiceDetail(invId) {
           <span class="text-[10px] text-slate-400 font-bold uppercase">Total in Words:</span>
           <p class="font-bold text-slate-800 italic mt-0.5">${words}</p>
         </div>
-
-        <!-- Audit History Section (Req 3) -->
-        ${auditHtml}
 
         <!-- Banking & Digital Signature Footer (Req 6 & 7) -->
         <div class="grid grid-cols-2 gap-6 pt-4 border-t border-slate-200 items-end">
