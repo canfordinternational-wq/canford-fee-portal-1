@@ -58,6 +58,19 @@
     set('sp-paid-fee', money(student.paidFee));
     set('sp-balance-fee', money(student.balanceFee));
 
+    // Use the same Banking & Payment QR configured in Settings.
+    const org = (typeof BooksStore !== 'undefined' && BooksStore.getOrg) ? BooksStore.getOrg() : {};
+    const bank = org.bank || {};
+    const qrImg = document.getElementById('sp-payment-qr');
+    const qrUpi = document.getElementById('sp-payment-upi');
+    const amount = Number(student.balanceFee || 0);
+    const upiData = `upi://pay?pa=${encodeURIComponent(bank.upiId || 'canford@upi')}&pn=${encodeURIComponent(org.name || 'Canford International')}&am=${amount}&cu=INR`;
+    const generatedQr = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(upiData)}&margin=1`;
+    if (qrImg) qrImg.src = bank.qrUrl || generatedQr;
+    if (qrUpi) qrUpi.textContent = bank.upiId || 'canford@upi';
+    const qrAmount = document.getElementById('sp-payment-qr-amount');
+    if (qrAmount) qrAmount.textContent = money(amount);
+
     const badge = document.getElementById('sp-badge');
     if (badge) {
       const status = student.feeStatus || (student.balanceFee <= 0 ? 'Paid' : 'Partial');

@@ -181,9 +181,16 @@ function updatePaySummary() {
 function updateUpiQr() {
   const qrImg = document.getElementById("upi-qr-image");
   if (!qrImg) return;
-  const upiUrl = `upi://pay?pa=canford@upi&pn=Canford%20International&am=${currentPaymentAmount}&cu=INR&tn=FeePayment-${currentActiveStudent?.id || 'Student'}`;
-  const qrApi = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(upiUrl)}&margin=1`;
+  const org = (typeof BooksStore !== 'undefined' && BooksStore.getOrg) ? BooksStore.getOrg() : {};
+  const bank = org.bank || {};
+  const upiId = bank.upiId || 'canford@upi';
+  const upiUrl = `upi://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(org.name || 'Canford International')}&am=${Number(currentPaymentAmount || 0)}&cu=INR&tn=FeePayment-${currentActiveStudent?.id || 'Student'}`;
+  // If a custom QR was uploaded under Banking & Payment QR, use that exact image.
+  // Otherwise generate a QR from the configured UPI ID and current payment amount.
+  const qrApi = bank.qrUrl || `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(upiUrl)}&margin=1`;
   qrImg.src = qrApi;
+  const upiLabel = document.querySelector('#pay-panel-upi .font-bold.text-slate-800');
+  if (upiLabel) upiLabel.textContent = upiId;
 }
 
 // Process Payment (Simulated Gateway)
