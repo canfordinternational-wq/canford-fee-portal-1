@@ -234,7 +234,8 @@ function renderInvoiceDetail(invId) {
     }
   }
 
-  // Audit history is retained in the invoice data for compliance/edit tracking, but is not displayed on the invoice.
+  // Audit history is retained in the invoice data for compliance/edit tracking, but is NEVER rendered on the invoice.
+  // This keeps the audit trail available internally while keeping customer-facing invoices clean.
 
   container.innerHTML = `
     <!-- Top Action Bar (Zoho Style) -->
@@ -415,6 +416,16 @@ function renderInvoiceDetail(invId) {
       </div>
     </div>
   `;
+
+  // Defensive cleanup: remove any legacy audit-history block that may exist in an older
+  // cached/template version. This affects only the displayed invoice, not stored audit data.
+  container.querySelectorAll('*').forEach(el => {
+    const txt = (el.textContent || '').trim();
+    if (/^Audit Revision History:?$/i.test(txt) || /^Previous Total:/i.test(txt)) {
+      const box = el.closest('.border-amber-200') || el.closest('[class*="amber"]') || el.parentElement;
+      if (box && box !== container) box.remove();
+    }
+  });
 }
 
 // Record payment modal for invoice (Req 2: Date support)
