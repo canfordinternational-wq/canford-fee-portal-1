@@ -2,7 +2,14 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#0a1628">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Canford">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="assets/pwa-180.png">
   <title>Canford Books - Institutional Accounting & Student Billing Software</title>
   
   <!-- Google Fonts: Inter & Outfit -->
@@ -47,8 +54,12 @@
   <!-- ========================================================================= -->
   <!-- ZOHO BOOKS STYLE COLLAPSIBLE SIDEBAR (240px) -->
   <!-- ========================================================================= -->
-  <aside class="no-print w-60 canford-sidebar text-slate-300 flex flex-col shrink-0 border-r border-[#001f3b] select-none z-30 shadow-xl">
+  <aside id="app-sidebar" class="no-print w-60 canford-sidebar text-slate-300 flex flex-col shrink-0 border-r border-[#001f3b] select-none z-30 shadow-xl">
     
+    <button type="button" class="mobile-only mobile-drawer-close" onclick="closeMobileSidebar()" aria-label="Close menu">
+      <i class="fas fa-times"></i>
+    </button>
+
     <!-- Organization Header (Zoho Style) -->
     <div class="p-4 border-b border-white/10 flex items-center justify-between">
       <div class="flex items-center gap-2.5">
@@ -158,6 +169,25 @@
     </div>
 
   </aside>
+
+  <!-- MOBILE APP HEADER / DRAWER CONTROLS -->
+  <header id="mobile-app-header" class="mobile-only no-print">
+    <button type="button" class="mobile-icon-btn" onclick="toggleMobileSidebar()" aria-label="Open menu">
+      <i class="fas fa-bars"></i>
+    </button>
+    <div class="mobile-brand">
+      <img src="assets/logo-white-mix.png" alt="Canford">
+      <div>
+        <strong>Canford Books</strong>
+        <span>Fee Management</span>
+      </div>
+    </div>
+    <button type="button" class="mobile-icon-btn" onclick="openNewInvoiceModal()" aria-label="Create invoice">
+      <i class="fas fa-plus"></i>
+    </button>
+  </header>
+
+  <div id="mobile-sidebar-overlay" class="mobile-only mobile-sidebar-overlay hidden" onclick="closeMobileSidebar()"></div>
 
   <!-- ========================================================================= -->
   <!-- MAIN WORKSPACE & CONTENT -->
@@ -1889,6 +1919,15 @@
     </div>
   </div>
 
+  <!-- MOBILE BOTTOM NAVIGATION -->
+  <nav id="mobile-bottom-nav" class="mobile-only no-print" aria-label="Primary navigation">
+    <button onclick="switchModule('dashboard')" data-mobile-module="dashboard"><i class="fas fa-chart-pie"></i><span>Home</span></button>
+    <button onclick="switchModule('students')" data-mobile-module="students"><i class="fas fa-user-graduate"></i><span>Students</span></button>
+    <button onclick="openNewInvoiceModal()" class="mobile-nav-main"><i class="fas fa-plus"></i><span>New</span></button>
+    <button onclick="switchModule('payments')" data-mobile-module="payments"><i class="fas fa-money-check-alt"></i><span>Payments</span></button>
+    <button onclick="switchModule('settings')" data-mobile-module="settings"><i class="fas fa-cog"></i><span>Settings</span></button>
+  </nav>
+
   <!-- Toast Notification Container -->
   <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 max-w-sm pointer-events-none"></div>
 
@@ -1904,6 +1943,45 @@
   <script src="js/client-portal.js?v=20261001-qr"></script>
   <script src="js/admin.js"></script>
   <script src="js/app.js"></script>
+  <script>
+    // PWA registration
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js').catch(err => console.warn('PWA service worker registration failed:', err));
+      });
+    }
+
+    function toggleMobileSidebar() {
+      const sidebar = document.getElementById('app-sidebar');
+      const overlay = document.getElementById('mobile-sidebar-overlay');
+      if (!sidebar || !overlay) return;
+      sidebar.classList.toggle('mobile-sidebar-open');
+      overlay.classList.toggle('hidden');
+      document.body.classList.toggle('mobile-menu-open', sidebar.classList.contains('mobile-sidebar-open'));
+    }
+
+    function closeMobileSidebar() {
+      const sidebar = document.getElementById('app-sidebar');
+      const overlay = document.getElementById('mobile-sidebar-overlay');
+      if (sidebar) sidebar.classList.remove('mobile-sidebar-open');
+      if (overlay) overlay.classList.add('hidden');
+      document.body.classList.remove('mobile-menu-open');
+    }
+
+    // Close the drawer after navigation on phones.
+    const originalSwitchModule = window.switchModule;
+    window.switchModule = function(moduleName) {
+      originalSwitchModule(moduleName);
+      if (window.innerWidth <= 768) closeMobileSidebar();
+      document.querySelectorAll('[data-mobile-module]').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.mobileModule === moduleName);
+      });
+    };
+
+    window.addEventListener('resize', () => {
+      if (window.innerWidth > 768) closeMobileSidebar();
+    });
+  </script>
 
 </body>
 </html>
