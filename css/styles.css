@@ -1,0 +1,137 @@
+/* ============================================================================
+   CANFORD BOOKS - ZOHO BOOKS PROFESSIONAL DESKTOP THEME & PRINT STYLES
+   ============================================================================ */
+
+:root {
+  --canford-blue: #003865;
+  --canford-blue-light: #005696;
+  --canford-gold: #C5A059;
+  --zoho-sidebar: #002b50;
+  --zoho-sidebar-hover: #003865;
+  --zoho-sidebar-active: #004d8c;
+  --zoho-border: #e2e8f0;
+  --zoho-bg: #f8fafc;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  color: #1e293b;
+  background-color: var(--zoho-bg);
+  overflow-x: hidden;
+}
+
+/* Custom Thin ERP Scrollbars */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Sidebar Navy Blue Styling (Req 12) */
+.canford-sidebar {
+  background: linear-gradient(180deg, #002b50 0%, #001e38 100%) !important;
+}
+
+/* Sidebar Item Active Style */
+.sidebar-item-active {
+  background-color: #003865 !important;
+  color: #ffffff !important;
+  font-weight: 600;
+  border-left: 3px solid #C5A059 !important;
+  box-shadow: 0 4px 10px -2px rgba(0, 56, 101, 0.4);
+}
+
+/* Split Pane Scroll Containers */
+.split-list-container {
+  height: calc(100vh - 120px);
+  overflow-y: auto;
+}
+
+.split-detail-container {
+  height: calc(100vh - 120px);
+  overflow-y: auto;
+}
+
+/* Glassmorphism modal overlay */
+.glass-overlay {
+  background-color: rgba(15, 23, 42, 0.7);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+/* Invoice Sheet Simulation */
+#invoice-sheet {
+  background: #ffffff;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  page-break-inside: avoid;
+}
+
+/* Watermark */
+.receipt-watermark {
+  position: relative;
+}
+.receipt-watermark::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(-25deg);
+  width: 320px;
+  height: 320px;
+  background-image: url('../assets/logo.png');
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  opacity: 0.04;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* ============================================================================
+   PRINT STYLESHEET - CLEAN A4 ZOHO TAX INVOICE & RECEIPT PRINTS
+   ============================================================================ */
+@media print {
+  aside, header, nav, #app-top-header, .no-print,
+  #modal-backdrop, #toast-container,
+  .split-list-container, #quick-create-dropdown {
+    display: none !important;
+  }
+
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  main, .split-detail-container {
+    height: auto !important;
+    overflow: visible !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+  }
+
+  #invoice-sheet, #receipt-paper {
+    box-shadow: none !important;
+    border: 1px solid #cbd5e1 !important;
+    padding: 20px !important;
+    width: 100% !important;
+    margin: 0 auto !important;
+    page-break-inside: avoid;
+  }
+
+  @page {
+    size: A4 portrait;
+    margin: 10mm;
+  }
+}
